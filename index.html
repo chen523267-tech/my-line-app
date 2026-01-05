@@ -3,141 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>禾禾租車管理系統</title>
+    <title>租車管理系統</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; }
-        .card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 15px; }
-        h2 { color: #1a73e8; margin-top: 0; font-size: 1.2rem; }
-        .data-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
-        .status { padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; }
-        .unpaid { background: #ffebee; color: #d93025; }
-        .paid { background: #e6f4ea; color: #188038; }
-        .loading { text-align: center; padding: 50px; color: #666; font-size: 1.1rem; }
+        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; text-align: center; }
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-top: 20px; text-align: left; }
         .hidden { display: none; }
-        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 8px; margin-top: 10px; }
+        .item { border-bottom: 1px solid #eee; padding: 12px 0; display: flex; justify-content: space-between; }
+        .status { font-weight: bold; color: #d93025; }
     </style>
 </head>
 <body>
+    <div id="loader" style="margin-top: 50px; color: #666;">
+        <h3 id="status-text">1/2 正在啟動系統...</h3>
+        <p id="debug-info" style="font-size: 0.8rem; color: #999;">如果卡住，請檢查網路連線</p>
+    </div>
 
-<div id="loader" class="loading">正在啟動系統，請稍候...</div>
-
-<div id="app" class="hidden">
-    <div id="user-view">
+    <div id="app" class="hidden">
+        <h2 id="user-name">你好</h2>
         <div class="card">
-            <h2 id="welcome-title">你好</h2>
-            <p id="profile-detail" style="color:#666; font-size:0.9rem;">正在查詢您的雲端帳務...</p>
+            <h4>我的帳務明細</h4>
+            <div id="list"></div>
         </div>
-        <div class="card">
-            <h2>我的帳務明細</h2>
-            <div id="record-list"></div>
-        </div>
-        <button onclick="showAdminLogin()" style="background:none; color:#999; font-size:0.8rem;">管理員登入</button>
     </div>
 
-    <div id="admin-login" class="card hidden">
-        <h2>管理員登入</h2>
-        <input type="text" id="admin-acc" placeholder="帳號">
-        <input type="password" id="admin-pwd" placeholder="密碼">
-        <button onclick="handleAdminLogin()">登入</button>
-        <button onclick="location.reload()" style="background:#888;">返回</button>
-    </div>
+    <script>
+        // 自動填入你的專屬資訊
+        const LIFF_ID = "2008825791-99Vl1KKs"; //
+        const API_URL = "https://script.google.com/macros/s/AKfycbzLdEr-LHoejFMpThHvzXSs7ARu_RkFPWIVcMPWtRo4zNBW6OVFRUR2iwnsd2Pat-QS/exec"; //
 
-    <div id="admin-view" class="card hidden">
-        <h2>新增客戶帳務</h2>
-        <input type="text" id="new-name" placeholder="客戶 LINE 姓名">
-        <input type="text" id="new-item" placeholder="項目">
-        <input type="number" id="new-amount" placeholder="金額">
-        <select id="new-status"><option value="未繳">未繳</option><option value="已繳">已繳</option></select>
-        <button onclick="submitToSheet()" style="background:#28a745;">儲存到雲端</button>
-        <button onclick="location.reload()" style="background:#888;">完成退出</button>
-    </div>
-</div>
+        async function start() {
+            const status = document.getElementById('status-text');
+            try {
+                status.innerText = "1/2 正在連線 LINE...";
+                await liff.init({ liffId: LIFF_ID });
+                
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                } else {
+                    status.innerText = "2/2 正在從雲端抓取資料...";
+                    const profile = await liff.getProfile();
+                    const userName = profile.displayName;
+                    
+                    const res = await fetch(API_URL);
+                    const data = await res.json();
+                    
+                    document.getElementById('loader').classList.add('hidden');
+                    document.getElementById('app').classList.remove('hidden');
+                    document.getElementById('user-name').innerText = "你好，" + userName;
 
-<script>
-    const liffId = "2008825791-99Vl1KKs"; 
-    const apiUrl = "https://script.google.com/macros/s/AKfycbzLdEr-LHoejFMpThHvzXSs7ARu_RkFPWIVcMPWtRo4zNBW6OVFRUR2iwnsd2Pat-QS/exec";
+                    // 尋找名字叫「陳鼎仁」的資料
+                    const myData = data.filter(r => String(r.姓名).trim() === userName.trim());
+                    const listDiv = document.getElementById('list');
 
-    async function initApp() {
-        const loader = document.getElementById('loader');
-        try {
-            loader.innerText = "1/2 正在連線 LINE...";
-            await liff.init({ liffId: liffId });
-            if (!liff.isLoggedIn()) {
-                liff.login();
-            } else {
-                loader.innerText = "2/2 正在抓取雲端資料...";
-                const profile = await liff.getProfile();
-                fetchUserData(profile.displayName);
+                    if (myData.length > 0) {
+                        listDiv.innerHTML = myData.map(r => `
+                            <div class="item">
+                                <div><b>${r.項目}</b><br><small>金額：$${r.金額}</small></div>
+                                <div class="status" style="color:${r.狀態==='已繳'?'green':'red'}">${r.狀態}</div>
+                            </div>
+                        `).join('');
+                    } else {
+                        listDiv.innerHTML = "查無「" + userName + "」的資料，請確認試算表姓名。";
+                    }
+                }
+            } catch (err) {
+                status.innerText = "連線失敗：" + err;
             }
-        } catch (e) {
-            loader.innerText = "連線失敗，請重新開啟。";
         }
-    }
-
-    async function fetchUserData(displayName) {
-        try {
-            const res = await fetch(apiUrl);
-            const data = await res.json();
-            
-            document.getElementById('loader').classList.add('hidden');
-            document.getElementById('app').classList.remove('hidden');
-            document.getElementById('welcome-title').innerText = "你好，" + displayName;
-
-            // 比對姓名 (去掉空白)
-            const myRecords = data.filter(r => String(r.姓名).trim() === displayName.trim());
-            const listDiv = document.getElementById('record-list');
-            
-            if (myRecords.length > 0) {
-                listDiv.innerHTML = myRecords.map(r => `
-                    <div class="data-row">
-                        <div>
-                            <div style="font-weight:bold;">${r.項目 || '無項目'}</div>
-                            <div style="font-size:0.8rem; color:#666;">金額：$${r.金額 || 0}</div>
-                        </div>
-                        <div class="status ${r.狀態 === '未繳' ? 'unpaid' : 'paid'}">${r.狀態 || '未知'}</div>
-                    </div>
-                `).join('');
-            } else {
-                listDiv.innerHTML = `<p style='color:#999;'>查無「${displayName}」的帳務。請確認試算表中姓名是否正確。</p>`;
-            }
-        } catch (e) {
-            document.getElementById('loader').innerText = "雲端連線失敗，請檢查 Google 權限。";
-        }
-    }
-
-    function showAdminLogin() {
-        document.getElementById('user-view').classList.add('hidden');
-        document.getElementById('admin-login').classList.remove('hidden');
-    }
-
-    function handleAdminLogin() {
-        if(document.getElementById('admin-acc').value === "admin" && 
-           document.getElementById('admin-pwd').value === "admin123") {
-            document.getElementById('admin-login').classList.add('hidden');
-            document.getElementById('admin-view').classList.remove('hidden');
-        } else { alert("密碼錯誤"); }
-    }
-
-    async function submitToSheet() {
-        const payload = {
-            acc: "admin", pwd: "---",
-            name: document.getElementById('new-name').value,
-            item: document.getElementById('new-item').value,
-            amount: document.getElementById('new-amount').value,
-            status: document.getElementById('new-status').value,
-            joinDate: new Date().toLocaleDateString(),
-            contract: "LINE手動"
-        };
-        try {
-            await fetch(apiUrl, { method: 'POST', body: JSON.stringify(payload) });
-            alert("已同步到雲端！");
-            location.reload();
-        } catch (e) { alert("送出失敗"); }
-    }
-
-    initApp();
-</script>
+        start();
+    </script>
 </body>
 </html>
