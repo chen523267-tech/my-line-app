@@ -14,110 +14,117 @@
         .unpaid { background: #ffebee; color: #d93025; }
         .paid { background: #e6f4ea; color: #188038; }
         input, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        .btn-admin { background: #1a73e8; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-size: 1rem; margin-top: 30px; cursor: pointer; }
+        .btn-admin { background: #1a73e8; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-size: 1rem; margin-top: 20px; cursor: pointer; }
         .btn-save { background: #28a745; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-size: 1rem; }
+        .btn-upload { background: #f39c12; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-size: 1rem; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <div id="loader" style="margin-top: 100px; color: #666;">
-        <h3 id="status-text">系統連線中...</h3>
-    </div>
+    <div id="loader" style="margin-top: 100px; color: #666;"><h3>系統連線中...</h3></div>
 
     <div id="app" class="hidden">
-        <h2 id="user-name" style="margin-top: 20px;">你好</h2>
+        <h2 id="user-name">你好</h2>
         <div class="card">
-            <h3 style="margin-top: 0; color: #333;">我的帳務明細</h3>
+            <h3>我的帳務明細</h3>
             <div id="list"></div>
+        </div>
+
+        <div class="card">
+            <h3>上傳繳費收據</h3>
+            <p style="font-size:0.8rem; color:#666;">請選擇轉帳截圖或收據照片上傳</p>
+            <input type="file" id="receipt-file" accept="image/*">
+            <button id="upload-btn" onclick="uploadReceipt()" class="btn-upload">送出收據照片</button>
         </div>
         
         <button onclick="showAdminLogin()" class="btn-admin">管理員登入</button>
     </div>
 
     <div id="admin-login" class="card hidden">
-        <h3 style="margin-top: 0;">管理員驗證</h3>
-        <input type="text" id="admin-acc" placeholder="請輸入帳號">
-        <input type="password" id="admin-pwd" placeholder="請輸入密碼">
-        <button onclick="handleAdminLogin()" class="btn-admin" style="margin-top:10px;">登入管理系統</button>
-        <button onclick="location.reload()" style="background:none; color:#666; border:none; width:100%; margin-top:10px;">返回客戶頁面</button>
+        <h3>管理員驗證</h3>
+        <input type="text" id="admin-acc" placeholder="帳號"><input type="password" id="admin-pwd" placeholder="密碼">
+        <button onclick="handleAdminLogin()" class="btn-admin">登入</button>
     </div>
 
     <div id="admin-view" class="card hidden">
-        <h3 style="margin-top: 0;">新增帳務資料</h3>
-        <input type="text" id="new-name" placeholder="客戶 LINE 姓名 (如: 陳鼎仁)">
-        <input type="text" id="new-item" placeholder="帳務項目 (如: 罰單)">
-        <input type="number" id="new-amount" placeholder="金額">
-        <select id="new-status">
-            <option value="未繳">未繳</option>
-            <option value="已繳">已繳</option>
-        </select>
-        <button onclick="submitToSheet()" class="btn-save">儲存到雲端</button>
-        <button onclick="location.reload()" style="background:none; color:#666; border:none; width:100%; margin-top:10px;">完成並退出</button>
+        <h3>新增資料</h3>
+        <input type="text" id="new-name" placeholder="客戶姓名"><input type="text" id="new-item" placeholder="項目"><input type="number" id="new-amount" placeholder="金額">
+        <select id="new-status"><option value="未繳">未繳</option><option value="已繳">已繳</option></select>
+        <button onclick="submitToSheet()" class="btn-save">儲存</button>
     </div>
 
     <script>
         const LIFF_ID = "2008825791-99Vl1KKs"; 
         const API_URL = "https://script.google.com/macros/s/AKfycbzLdEr-LHoejFMpThHvzXSs7ARu_RkFPWIVcMPWtRo4zNBW6OVFRUR2iwnsd2Pat-QS/exec";
+        let currentUserName = "";
 
         async function start() {
-            const status = document.getElementById('status-text');
             try {
                 await liff.init({ liffId: LIFF_ID });
                 if (!liff.isLoggedIn()) { liff.login(); } 
                 else {
                     const profile = await liff.getProfile();
-                    const userName = profile.displayName;
+                    currentUserName = profile.displayName;
                     const res = await fetch(API_URL);
                     const data = await res.json();
-                    
                     document.getElementById('loader').classList.add('hidden');
                     document.getElementById('app').classList.remove('hidden');
-                    document.getElementById('user-name').innerText = "你好，" + userName;
-
-                    const myData = data.filter(r => String(r.姓名).trim() === userName.trim());
-                    const listDiv = document.getElementById('list');
-
-                    if (myData.length > 0) {
-                        listDiv.innerHTML = myData.map(r => `
-                            <div class="item">
-                                <div><b>${r.項目}</b><br><small>金額：$${r.金額}</small></div>
-                                <div class="status ${r.狀態==='已繳'?'paid':'unpaid'}">${r.狀態}</div>
-                            </div>
-                        `).join('');
-                    } else {
-                        listDiv.innerHTML = "<p style='color:#999;'>查無「" + userName + "」的資料。</p>";
-                    }
+                    document.getElementById('user-name').innerText = "你好，" + currentUserName;
+                    renderList(data);
                 }
-            } catch (err) { status.innerText = "連線失敗：" + err; }
+            } catch (err) { alert("連線失敗：" + err); }
         }
 
-        function showAdminLogin() {
-            document.getElementById('app').classList.add('hidden');
-            document.getElementById('admin-login').classList.remove('hidden');
+        function renderList(data) {
+            const myData = data.filter(r => String(r.姓名).trim() === currentUserName.trim());
+            const listDiv = document.getElementById('list');
+            if (myData.length > 0) {
+                listDiv.innerHTML = myData.map(r => `
+                    <div class="item">
+                        <div><b>${r.項目}</b><br><small>金額：$${r.金額}</small></div>
+                        <div class="status ${r.狀態==='已繳'?'paid':'unpaid'}">${r.狀態}</div>
+                    </div>
+                `).join('');
+            } else { listDiv.innerHTML = "目前暫無明細資料。"; }
         }
 
-        function handleAdminLogin() {
-            if(document.getElementById('admin-acc').value === "admin" && 
-               document.getElementById('admin-pwd').value === "admin123") {
-                document.getElementById('admin-login').classList.add('hidden');
-                document.getElementById('admin-view').classList.remove('hidden');
-            } else { alert("帳號或密碼錯誤"); }
-        }
+        // --- 新功能：處理圖片上傳 ---
+        async function uploadReceipt() {
+            const fileInput = document.getElementById('receipt-file');
+            const uploadBtn = document.getElementById('upload-btn');
+            if (fileInput.files.length === 0) { alert("請先選擇照片！"); return; }
 
-        async function submitToSheet() {
-            const payload = {
-                acc: "admin", pwd: "---",
-                name: document.getElementById('new-name').value,
-                item: document.getElementById('new-item').value,
-                amount: document.getElementById('new-amount').value,
-                status: document.getElementById('new-status').value,
-                joinDate: new Date().toLocaleDateString(),
-                contract: "LINE輸入"
+            uploadBtn.innerText = "正在傳送圖片...";
+            uploadBtn.disabled = true;
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const base64 = e.target.result.split(',')[1];
+                const payload = {
+                    type: "uploadReceipt",
+                    name: currentUserName,
+                    base64: base64,
+                    mimeType: file.type
+                };
+                try {
+                    await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+                    alert("收據上傳成功！鼎仁會盡快為您核對。");
+                    location.reload();
+                } catch (err) { alert("上傳失敗，請稍後再試。"); }
             };
-            try {
-                await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-                alert("資料已成功同步到雲端！");
-                location.reload();
-            } catch (e) { alert("上傳失敗"); }
+            reader.readAsDataURL(file);
+        }
+
+        function showAdminLogin() { document.getElementById('app').classList.add('hidden'); document.getElementById('admin-login').classList.remove('hidden'); }
+        function handleAdminLogin() {
+            if(document.getElementById('admin-acc').value === "admin" && document.getElementById('admin-pwd').value === "admin123") {
+                document.getElementById('admin-login').classList.add('hidden'); document.getElementById('admin-view').classList.remove('hidden');
+            } else { alert("錯誤"); }
+        }
+        async function submitToSheet() {
+            const payload = { type: "adminAdd", acc: "admin", pwd: "---", name: document.getElementById('new-name').value, item: document.getElementById('new-item').value, amount: document.getElementById('new-amount').value, status: document.getElementById('new-status').value, joinDate: new Date().toLocaleDateString(), contract: "LINE輸入" };
+            await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+            alert("成功"); location.reload();
         }
         start();
     </script>
