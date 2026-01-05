@@ -6,45 +6,66 @@
     <title>租車管理系統</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; text-align: center; }
-        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-top: 20px; text-align: left; }
+        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; text-align: center; margin: 0; }
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: 20px; text-align: left; }
         .hidden { display: none; }
-        .item { border-bottom: 1px solid #eee; padding: 12px 0; display: flex; justify-content: space-between; }
-        .status { font-weight: bold; color: #d93025; }
+        .item { border-bottom: 1px solid #eee; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; }
+        .status { font-weight: bold; border-radius: 20px; padding: 4px 12px; font-size: 0.85rem; }
+        .unpaid { background: #ffebee; color: #d93025; }
+        .paid { background: #e6f4ea; color: #188038; }
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .btn-admin { background: #1a73e8; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-size: 1rem; margin-top: 30px; cursor: pointer; }
+        .btn-save { background: #28a745; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-size: 1rem; }
     </style>
 </head>
 <body>
-    <div id="loader" style="margin-top: 50px; color: #666;">
-        <h3 id="status-text">1/2 正在啟動系統...</h3>
-        <p id="debug-info" style="font-size: 0.8rem; color: #999;">如果卡住，請檢查網路連線</p>
+    <div id="loader" style="margin-top: 100px; color: #666;">
+        <h3 id="status-text">系統連線中...</h3>
     </div>
 
     <div id="app" class="hidden">
-        <h2 id="user-name">你好</h2>
+        <h2 id="user-name" style="margin-top: 20px;">你好</h2>
         <div class="card">
-            <h4>我的帳務明細</h4>
+            <h3 style="margin-top: 0; color: #333;">我的帳務明細</h3>
             <div id="list"></div>
         </div>
+        
+        <button onclick="showAdminLogin()" class="btn-admin">管理員登入</button>
+    </div>
+
+    <div id="admin-login" class="card hidden">
+        <h3 style="margin-top: 0;">管理員驗證</h3>
+        <input type="text" id="admin-acc" placeholder="請輸入帳號">
+        <input type="password" id="admin-pwd" placeholder="請輸入密碼">
+        <button onclick="handleAdminLogin()" class="btn-admin" style="margin-top:10px;">登入管理系統</button>
+        <button onclick="location.reload()" style="background:none; color:#666; border:none; width:100%; margin-top:10px;">返回客戶頁面</button>
+    </div>
+
+    <div id="admin-view" class="card hidden">
+        <h3 style="margin-top: 0;">新增帳務資料</h3>
+        <input type="text" id="new-name" placeholder="客戶 LINE 姓名 (如: 陳鼎仁)">
+        <input type="text" id="new-item" placeholder="帳務項目 (如: 罰單)">
+        <input type="number" id="new-amount" placeholder="金額">
+        <select id="new-status">
+            <option value="未繳">未繳</option>
+            <option value="已繳">已繳</option>
+        </select>
+        <button onclick="submitToSheet()" class="btn-save">儲存到雲端</button>
+        <button onclick="location.reload()" style="background:none; color:#666; border:none; width:100%; margin-top:10px;">完成並退出</button>
     </div>
 
     <script>
-        // 自動填入你的專屬資訊
-        const LIFF_ID = "2008825791-99Vl1KKs"; //
-        const API_URL = "https://script.google.com/macros/s/AKfycbzLdEr-LHoejFMpThHvzXSs7ARu_RkFPWIVcMPWtRo4zNBW6OVFRUR2iwnsd2Pat-QS/exec"; //
+        const LIFF_ID = "2008825791-99Vl1KKs"; 
+        const API_URL = "https://script.google.com/macros/s/AKfycbzLdEr-LHoejFMpThHvzXSs7ARu_RkFPWIVcMPWtRo4zNBW6OVFRUR2iwnsd2Pat-QS/exec";
 
         async function start() {
             const status = document.getElementById('status-text');
             try {
-                status.innerText = "1/2 正在連線 LINE...";
                 await liff.init({ liffId: LIFF_ID });
-                
-                if (!liff.isLoggedIn()) {
-                    liff.login();
-                } else {
-                    status.innerText = "2/2 正在從雲端抓取資料...";
+                if (!liff.isLoggedIn()) { liff.login(); } 
+                else {
                     const profile = await liff.getProfile();
                     const userName = profile.displayName;
-                    
                     const res = await fetch(API_URL);
                     const data = await res.json();
                     
@@ -52,7 +73,6 @@
                     document.getElementById('app').classList.remove('hidden');
                     document.getElementById('user-name').innerText = "你好，" + userName;
 
-                    // 尋找名字叫「陳鼎仁」的資料
                     const myData = data.filter(r => String(r.姓名).trim() === userName.trim());
                     const listDiv = document.getElementById('list');
 
@@ -60,16 +80,44 @@
                         listDiv.innerHTML = myData.map(r => `
                             <div class="item">
                                 <div><b>${r.項目}</b><br><small>金額：$${r.金額}</small></div>
-                                <div class="status" style="color:${r.狀態==='已繳'?'green':'red'}">${r.狀態}</div>
+                                <div class="status ${r.狀態==='已繳'?'paid':'unpaid'}">${r.狀態}</div>
                             </div>
                         `).join('');
                     } else {
-                        listDiv.innerHTML = "查無「" + userName + "」的資料，請確認試算表姓名。";
+                        listDiv.innerHTML = "<p style='color:#999;'>查無「" + userName + "」的資料。</p>";
                     }
                 }
-            } catch (err) {
-                status.innerText = "連線失敗：" + err;
-            }
+            } catch (err) { status.innerText = "連線失敗：" + err; }
+        }
+
+        function showAdminLogin() {
+            document.getElementById('app').classList.add('hidden');
+            document.getElementById('admin-login').classList.remove('hidden');
+        }
+
+        function handleAdminLogin() {
+            if(document.getElementById('admin-acc').value === "admin" && 
+               document.getElementById('admin-pwd').value === "admin123") {
+                document.getElementById('admin-login').classList.add('hidden');
+                document.getElementById('admin-view').classList.remove('hidden');
+            } else { alert("帳號或密碼錯誤"); }
+        }
+
+        async function submitToSheet() {
+            const payload = {
+                acc: "admin", pwd: "---",
+                name: document.getElementById('new-name').value,
+                item: document.getElementById('new-item').value,
+                amount: document.getElementById('new-amount').value,
+                status: document.getElementById('new-status').value,
+                joinDate: new Date().toLocaleDateString(),
+                contract: "LINE輸入"
+            };
+            try {
+                await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+                alert("資料已成功同步到雲端！");
+                location.reload();
+            } catch (e) { alert("上傳失敗"); }
         }
         start();
     </script>
