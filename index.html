@@ -6,7 +6,7 @@
     <title>禾禾租車管理系統</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #f0f2f5; padding: 20px; text-align: center; margin: 0; }
+        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; text-align: center; }
         .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: 15px; text-align: left; }
         .hidden { display: none; }
         .item { border-bottom: 1px solid #eee; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; }
@@ -14,25 +14,24 @@
         .unpaid { background: #ffebee; color: #d93025; }
         .paid { background: #e6f4ea; color: #188038; }
         input, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        button { cursor: pointer; border: none; }
-        .btn-admin { background: #1a73e8; color: white; padding: 12px; border-radius: 8px; width: 100%; font-size: 1rem; margin-top: 20px; }
-        .btn-save { background: #28a745; color: white; padding: 12px; border-radius: 8px; width: 100%; font-size: 1rem; }
-        .btn-upload { background: #f39c12; color: white; padding: 12px; border-radius: 8px; width: 100%; font-size: 1rem; margin-top: 10px; }
+        button { cursor: pointer; border: none; width: 100%; padding: 12px; border-radius: 8px; font-size: 1rem; }
+        .btn-admin { background: #1a73e8; color: white; margin-top: 20px; }
+        .btn-save { background: #28a745; color: white; }
+        .btn-upload { background: #f39c12; color: white; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <div id="loader" style="margin-top: 100px; color: #666;"><h3>系統連線中...</h3></div>
+    <div id="loader" style="margin-top: 100px; color: #666;"><h3>系統啟動中...</h3></div>
 
     <div id="app" class="hidden">
         <h2 id="user-name">你好</h2>
         <div class="card">
-            <h3 style="margin:0 0 10px 0;">我的帳務明細</h3>
+            <h3>我的帳務明細</h3>
             <div id="list"></div>
         </div>
 
         <div class="card">
-            <h3 style="margin:0 0 5px 0;">上傳繳費收據</h3>
-            <p style="font-size:0.8rem; color:#666; margin-bottom:10px;">上傳後照片將存入雲端硬碟備查</p>
+            <h3>上傳繳費收據</h3>
             <input type="file" id="receipt-file" accept="image/*">
             <button id="upload-btn" onclick="uploadReceipt()" class="btn-upload">送出收據照片</button>
         </div>
@@ -44,20 +43,19 @@
         <h3>管理員驗證</h3>
         <input type="text" id="admin-acc" placeholder="帳號"><input type="password" id="admin-pwd" placeholder="密碼">
         <button onclick="handleAdminLogin()" class="btn-admin">登入</button>
-        <button onclick="location.reload()" style="background:none; color:#666; width:100%; margin-top:10px;">返回</button>
     </div>
 
     <div id="admin-view" class="card hidden">
-        <h3>新增資料到試算表</h3>
-        <input type="text" id="new-name" placeholder="客戶 LINE 姓名"><input type="text" id="new-item" placeholder="項目"><input type="number" id="new-amount" placeholder="金額">
+        <h3>新增資料</h3>
+        <input type="text" id="new-name" placeholder="客戶姓名"><input type="text" id="new-item" placeholder="項目"><input type="number" id="new-amount" placeholder="金額">
         <select id="new-status"><option value="未繳">未繳</option><option value="已繳">已繳</option></select>
         <button onclick="submitToSheet()" class="btn-save">儲存到雲端</button>
-        <button onclick="location.reload()" style="background:none; color:#666; width:100%; margin-top:10px;">完成退出</button>
+        <button onclick="location.reload()" style="background:none; color:#666; margin-top:10px;">完成退出</button>
     </div>
 
     <script>
-        const LIFF_ID = "2008825791-99Vl1KKs"; //
-        const API_URL = "https://script.google.com/macros/s/AKfycbzLdEr-LHoejFMpThHvzXSs7ARu_RkFPWIVcMPWtRo4zNBW6OVFRUR2iwnsd2Pat-QS/exec"; //
+        const LIFF_ID = "2008825791-99Vl1KKs"; 
+        const API_URL = "https://script.google.com/macros/s/AKfycbzLdEr-LHoejFMpThHvzXSs7ARu_RkFPWIVcMPWtRo4zNBW6OVFRUR2iwnsd2Pat-QS/exec";
         let currentUserName = "";
 
         async function start() {
@@ -66,7 +64,7 @@
                 if (!liff.isLoggedIn()) { liff.login(); } 
                 else {
                     const profile = await liff.getProfile();
-                    currentUserName = profile.displayName; //
+                    currentUserName = profile.displayName;
                     const res = await fetch(API_URL);
                     const data = await res.json();
                     document.getElementById('loader').classList.add('hidden');
@@ -78,7 +76,7 @@
         }
 
         function renderList(data) {
-            const myData = data.filter(r => String(r.姓名).trim() === currentUserName.trim()); //
+            const myData = data.filter(r => String(r.姓名).trim() === currentUserName.trim());
             const listDiv = document.getElementById('list');
             if (myData.length > 0) {
                 listDiv.innerHTML = myData.map(r => `
@@ -87,7 +85,7 @@
                         <div class="status ${r.狀態==='已繳'?'paid':'unpaid'}">${r.狀態}</div>
                     </div>
                 `).join('');
-            } else { listDiv.innerHTML = "查無「" + currentUserName + "」的明細資料。"; }
+            } else { listDiv.innerHTML = "目前暫無明細資料。"; }
         }
 
         async function uploadReceipt() {
@@ -106,7 +104,7 @@
                     const result = await response.text();
                     alert("伺服器回應：" + result);
                     location.reload();
-                } catch (err) { alert("上傳失敗，請檢查網路。"); uploadBtn.disabled = false; uploadBtn.innerText = "送出收據照片"; }
+                } catch (err) { alert("傳輸失敗，請稍後再試。"); uploadBtn.disabled = false; uploadBtn.innerText = "送出收據照片"; }
             };
             reader.readAsDataURL(file);
         }
@@ -115,12 +113,12 @@
         function handleAdminLogin() {
             if(document.getElementById('admin-acc').value === "admin" && document.getElementById('admin-pwd').value === "admin123") {
                 document.getElementById('admin-login').classList.add('hidden'); document.getElementById('admin-view').classList.remove('hidden');
-            } else { alert("登入失敗"); }
+            } else { alert("帳密錯誤"); }
         }
         async function submitToSheet() {
             const payload = { type: "adminAdd", acc: "admin", pwd: "---", name: document.getElementById('new-name').value, item: document.getElementById('new-item').value, amount: document.getElementById('new-amount').value, status: document.getElementById('new-status').value, joinDate: new Date().toLocaleDateString(), contract: "LINE輸入" };
             await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-            alert("已同步到雲端"); location.reload();
+            alert("儲存成功"); location.reload();
         }
         start();
     </script>
