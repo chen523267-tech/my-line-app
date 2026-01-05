@@ -1,84 +1,18 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>禾禾租車管理系統</title>
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; }
-        .card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 15px; }
-        h2 { color: #1a73e8; margin-top: 0; font-size: 1.2rem; }
-        .data-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
-        .data-row:last-child { border-bottom: none; }
-        .item-name { font-weight: 500; color: #333; }
-        .item-info { font-size: 0.85rem; color: #666; }
-        .status { padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; }
-        .unpaid { background: #ffebee; color: #d93025; }
-        .paid { background: #e6f4ea; color: #188038; }
-        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; margin-top: 10px; }
-        .loading { text-align: center; padding: 50px; color: #666; }
-        .hidden { display: none; }
-    </style>
-</head>
-<body>
-
-<div id="loader" class="loading">系統載入中，請稍候...</div>
-
-<div id="app" class="hidden">
-    <div id="user-view">
-        <div class="card">
-            <h2 id="welcome-title">你好，載入中...</h2>
-            <div id="profile-detail" class="item-info">正在對齊您的雲端帳務資料</div>
-            <button onclick="showAdminLogin()" style="background: none; color: #999; font-size: 0.8rem; margin-top: 20px;">管理員登入</button>
-        </div>
-
-        <div class="card">
-            <h2>我的帳務明細</h2>
-            <div id="record-list">
-                </div>
-        </div>
-    </div>
-
-    <div id="admin-login" class="card hidden">
-        <h2>管理員登入</h2>
-        <input type="text" id="admin-acc" placeholder="帳號">
-        <input type="password" id="admin-pwd" placeholder="密碼">
-        <button onclick="handleAdminLogin()">進入管理模式</button>
-        <button onclick="showUserView()" style="background:#888;">返回</button>
-    </div>
-
-    <div id="admin-view" class="card hidden">
-        <h2>新增客戶帳務</h2>
-        <input type="text" id="new-name" placeholder="客戶 LINE 姓名">
-        <input type="text" id="new-item" placeholder="項目 (如: 1月租金)">
-        <input type="number" id="new-amount" placeholder="金額">
-        <select id="new-status">
-            <option value="未繳納">未繳納</option>
-            <option value="已繳納">已繳納</option>
-        </select>
-        <button onclick="submitToSheet()" style="background:#28a745;">儲存到雲端</button>
-        <button onclick="location.reload()" style="background:#888;">完成並退出</button>
-    </div>
-</div>
-
-<script>
-    // 你的專屬設定
-    const liffId = "2008825791-99Vl1KKs"; 
-    const apiUrl = "https://script.google.com/macros/s/AKfycbzLdEr-LHoejFMpThHvzXSs7ARu_RkFPWIVcMPWtRo4zNBW6OVFRUR2iwnsd2Pat-QS/exec";
-
-    async function initApp() {
+async function initApp() {
+        const loader = document.getElementById('loader');
         try {
+            loader.innerText = "正在連線 LINE...";
             await liff.init({ liffId: liffId });
+            
             if (!liff.isLoggedIn()) {
                 liff.login();
             } else {
+                loader.innerText = "正在抓取雲端資料...";
                 const profile = await liff.getProfile();
                 fetchUserData(profile.displayName);
             }
         } catch (e) {
-            document.getElementById('loader').innerText = "系統初始化失敗，請重新開啟";
+            loader.innerText = "LINE 初始化失敗: " + e;
         }
     }
 
@@ -87,58 +21,29 @@
             const res = await fetch(apiUrl);
             const data = await res.json();
             
-            // 隱藏載入中，顯示 App
+            // 隱藏載入畫面
             document.getElementById('loader').classList.add('hidden');
             document.getElementById('app').classList.remove('hidden');
             document.getElementById('welcome-title').innerText = "你好，" + displayName;
 
-            const myRecords = data.filter(r => r.姓名 === displayName);
+            // 比對姓名 (去掉空白)
+            const myRecords = data.filter(r => String(r.姓名).trim() === displayName.trim());
             const listDiv = document.getElementById('record-list');
             
             if (myRecords.length > 0) {
                 listDiv.innerHTML = myRecords.map(r => `
                     <div class="data-row">
                         <div>
-                            <div class="item-name">${r.項目}</div>
-                            <div class="item-info">金額：$${r.金額}</div>
+                            <div class="item-name">${r.項目 || '無項目'}</div>
+                            <div class="item-info">金額：$${r.金額 || 0}</div>
                         </div>
-                        <div class="status ${r.狀態 === '未繳納' ? 'unpaid' : 'paid'}">${r.狀態}</div>
+                        <div class="status ${r.狀態 === '未繳' ? 'unpaid' : 'paid'}">${r.狀態 || '未知'}</div>
                     </div>
                 `).join('');
             } else {
-                listDiv.innerHTML = "<p style='color:#999;'>查無明細紀錄，請聯繫客服。</p>";
+                listDiv.innerHTML = `<p style='color:#999;'>查無「${displayName}」的資料。<br>請確認試算表中姓名是否完全一致。</p>`;
             }
         } catch (e) {
-            alert("抓取雲端資料失敗");
+            document.getElementById('loader').innerText = "連線 Google 失敗，請確認腳本已設為『所有人』。";
         }
     }
-
-    // 管理員邏輯
-    function showAdminLogin() {
-        document.getElementById('user-view').classList.add('hidden');
-        document.getElementById('admin-login').classList.remove('hidden');
-    }
-
-    function showUserView() {
-        document.getElementById('admin-login').classList.add('hidden');
-        document.getElementById('user-view').classList.remove('hidden');
-    }
-
-    function handleAdminLogin() {
-        if(document.getElementById('admin-acc').value === "admin" && 
-           document.getElementById('admin-pwd').value === "admin123") {
-            document.getElementById('admin-login').classList.add('hidden');
-            document.getElementById('admin-view').classList.remove('hidden');
-        } else {
-            alert("管理員密碼錯誤");
-        }
-    }
-
-    async function submitToSheet() {
-        const payload = {
-            acc: "admin_manual",
-            pwd: "---",
-            name: document.getElementById('new-name').value,
-            item: document.getElementById('new-item').value,
-            amount: document.getElementById('new-amount').value,
-            status: document
