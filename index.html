@@ -8,31 +8,28 @@
     <style>
         :root { --primary: #1a73e8; --success: #34a853; --danger: #ea4335; --bg: #f8f9fa; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); padding: 15px; margin: 0; color: #202124; }
-        .card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 15px; }
-        .card-title { color: var(--primary); font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; }
+        .card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        .card-title { color: var(--primary); font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; }
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .info-box { background: var(--bg); padding: 10px; border-radius: 10px; }
-        .info-box label { display: block; font-size: 0.7rem; color: #5f6368; }
-        .info-box div { font-size: 0.95rem; font-weight: bold; }
+        .info-box label { display: block; font-size: 0.75rem; color: #666; }
+        .info-box div { font-weight: bold; }
         .item { padding: 12px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
-        .status-badge { padding: 5px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; }
+        .status-badge { padding: 5px 10px; border-radius: 15px; font-size: 0.8rem; font-weight: bold; }
         .paid { background: #e6f4ea; color: var(--success); }
         .unpaid { background: #fce8e6; color: var(--danger); }
-        input, select { width: 100%; padding: 12px; margin: 5px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 1rem; }
-        
-        /* 多選樣式 */
-        .multi-area { margin: 15px 0; text-align: left; }
-        .multi-row { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #eee; padding: 10px; border-radius: 10px; margin-bottom: 8px; }
-        .multi-row input[type="checkbox"] { width: 22px; height: 22px; margin: 0; cursor: pointer; }
-        .multi-row input[type="number"] { flex: 1; padding: 8px; margin: 0; font-size: 0.9rem; }
-        
-        button { cursor: pointer; border: none; width: 100%; padding: 14px; border-radius: 10px; font-weight: bold; font-size: 1rem; }
+        input, select { width: 100%; padding: 12px; margin: 5px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .multi-area { margin: 15px 0; border: 1px solid #eee; border-radius: 10px; padding: 10px; }
+        .multi-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .multi-row input[type="checkbox"] { width: 20px; height: 20px; }
+        .multi-row input[type="number"] { flex: 1; padding: 8px; }
+        button { cursor: pointer; border: none; width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; }
         .btn-main { background: var(--primary); color: white; margin-top: 15px; }
         .hidden { display: none; }
     </style>
 </head>
 <body>
-    <div id="loader" style="margin-top: 45vh; text-align: center; color: #5f6368;"><h3>系統安全連線中...</h3></div>
+    <div id="loader" style="margin-top: 45vh; text-align: center; color: #666;"><h3>系統安全啟動中...</h3></div>
 
     <div id="app" class="hidden">
         <h2 id="user-name" style="text-align:center;">你好</h2>
@@ -49,27 +46,36 @@
             <input type="file" id="receipt-file" accept="image/*">
             <button id="upload-btn" onclick="uploadReceipt()" class="btn-main" style="background:#f39c12;">確認送出照片</button>
         </div>
-        <button onclick="showAdminLogin()" style="background:none; color:#5f6368; font-size:0.8rem; margin-top:20px;">管理員登入</button>
+        <button onclick="showAdminLogin()" style="background:none; color:#666; font-size:0.8rem; margin-top:20px;">管理員登入</button>
     </div>
 
     <div id="admin-view" class="card hidden">
-        <h3 style="margin-top:0; color:var(--primary);">新增多項帳務</h3>
-        <input type="text" id="new-userId" placeholder="貼上司機 UserID">
-        <input type="text" id="new-name" placeholder="姓名">
-        <div style="display:flex; gap:10px;"><input type="text" id="new-carNo" placeholder="車號"><input type="text" id="new-carType" placeholder="車型"></div>
+        <h3 style="color:var(--primary); margin-top:0;">新增司機帳務</h3>
+        
+        <label style="font-size:0.8rem;">選擇司機姓名 (自動連動 ID)：</label>
+        <input list="driver-list" id="new-name" onchange="autoFillId()" placeholder="輸入或選擇姓名">
+        <datalist id="driver-list"></datalist>
+
+        <label style="font-size:0.8rem;">司機 UserID (選好名字後自動填入)：</label>
+        <input type="text" id="new-userId" placeholder="UserID 會自動顯示在此" readonly style="background:#f0f0f0;">
+
+        <div style="display:flex; gap:5px;">
+            <input type="text" id="new-carNo" placeholder="車號">
+            <input type="text" id="new-carType" placeholder="車型">
+        </div>
         
         <div class="multi-area">
-            <label style="font-size:0.85rem; font-weight:600; color:var(--primary);">勾選要收費的項目與金額：</label>
-            <div class="multi-row"><input type="checkbox" value="車租"> 車租 <input type="number" class="item-amt" placeholder="輸入金額"></div>
-            <div class="multi-row"><input type="checkbox" value="行費"> 行費 <input type="number" class="item-amt" placeholder="輸入金額"></div>
-            <div class="multi-row"><input type="checkbox" value="保險費"> 保險費 <input type="number" class="item-amt" placeholder="輸入金額"></div>
-            <div class="multi-row"><input type="checkbox" value="換證"> 換證 <input type="number" class="item-amt" placeholder="輸入金額"></div>
-            <div class="multi-row"><input type="checkbox" value="罰單"> 罰單 <input type="number" class="item-amt" placeholder="輸入金額"></div>
+            <label style="font-size:0.85rem; font-weight:600;">勾選收費項目：</label>
+            <div class="multi-row"><input type="checkbox" value="車租"> 車租 <input type="number" class="item-amt" placeholder="金額"></div>
+            <div class="multi-row"><input type="checkbox" value="行費"> 行費 <input type="number" class="item-amt" placeholder="金額"></div>
+            <div class="multi-row"><input type="checkbox" value="保險費"> 保險費 <input type="number" class="item-amt" placeholder="金額"></div>
+            <div class="multi-row"><input type="checkbox" value="換證"> 換證 <input type="number" class="item-amt" placeholder="金額"></div>
+            <div class="multi-row"><input type="checkbox" value="罰單"> 罰單 <input type="number" class="item-amt" placeholder="金額"></div>
         </div>
 
         <select id="new-status"><option value="false">狀態：未繳</option><option value="true">狀態：已繳</option></select>
-        <button onclick="submitToSheet()" class="btn-main" style="background:var(--success);">儲存至雲端並連動日期</button>
-        <button onclick="location.reload()" style="background:#eee; color:#666; margin-top:10px;">取消</button>
+        <button onclick="submitToSheet()" class="btn-main" style="background:var(--success);">儲存至雲端</button>
+        <button onclick="location.reload()" style="background:none; color:#666; margin-top:10px;">取消</button>
     </div>
 
     <div id="admin-login" class="card hidden">
@@ -82,6 +88,7 @@
         const LIFF_ID = "2008825791-99Vl1KKs"; 
         const API_URL = "https://script.google.com/macros/s/AKfycbzLdEr-LHoejFMpThHvzXSs7ARu_RkFPWIVcMPWtRo4zNBW6OVFRUR2iwnsd2Pat-QS/exec"; 
         let currentUserId = "";
+        let driverData = []; // 存放所有已註冊司機資料
 
         async function start() {
             try {
@@ -91,20 +98,37 @@
                     const profile = await liff.getProfile();
                     currentUserId = profile.userId;
                     const res = await fetch(API_URL);
-                    const data = await res.json();
+                    driverData = await res.json();
+                    
+                    // 填充管理員用的司機清單
+                    const listHtml = [...new Set(driverData.map(d => d.姓名))].map(name => `<option value="${name}">`).join('');
+                    document.getElementById('driver-list').innerHTML = listHtml;
+
                     document.getElementById('loader').classList.add('hidden');
                     document.getElementById('app').classList.remove('hidden');
                     document.getElementById('user-name').innerText = "你好，" + profile.displayName;
-                    renderUI(data, currentUserId);
+                    renderUI(driverData, currentUserId);
                 }
             } catch (err) { alert("連線失敗"); }
+        }
+
+        // 智慧連動：輸入名字後自動找出對應的 ID 和車子資料
+        function autoFillId() {
+            const nameInput = document.getElementById('new-name').value;
+            const match = driverData.find(d => String(d.姓名).trim() === nameInput.trim());
+            if (match) {
+                document.getElementById('new-userId').value = match.帳號;
+                document.getElementById('new-carNo').value = match.車號 || "";
+                document.getElementById('new-carType').value = match.車型 || "";
+            } else {
+                document.getElementById('new-userId').value = ""; // 新司機則留白手填
+            }
         }
 
         function renderUI(data, userId) {
             const myData = data.filter(r => String(r.帳號).trim() === userId.trim());
             const profileDiv = document.getElementById('user-profile');
             if (myData.length > 0) {
-                // 自動抓取最新且有日期的資料顯示
                 const dateEntry = myData.filter(r => r.下次繳費日期).pop() || myData[myData.length-1];
                 profileDiv.innerHTML = `
                     <div class="info-box"><label>車號</label><div>${dateEntry.車號 || '-'}</div></div>
@@ -113,11 +137,11 @@
                 document.getElementById('list').innerHTML = myData.map(r => `
                     <div class="item">
                         <div><b>${r.收費項目}</b><br><small>NT$ ${r.金額}</small></div>
-                        <div class="status-badge ${ (r.繳費狀態===true||r.繳費狀態==="TRUE")?'paid':'unpaid'}">${ (r.繳費狀態===true||r.繳費狀態==="TRUE")?'✅ 已繳':'⚠️ 未繳'}</div>
+                        <div class="status-badge ${ (r.繳費狀態===true||r.繳費狀態==="TRUE"||r.繳費狀態==="已繳")?'paid':'unpaid'}">${ (r.繳費狀態===true||r.繳費狀態==="TRUE"||r.繳費狀態==="已繳")?'✅ 已繳':'⚠️ 未繳'}</div>
                     </div>
                 `).join('');
             } else {
-                profileDiv.innerHTML = `<div style="grid-column: span 2; text-align:center;">帳號 ID：<br><small>${userId}</small></div>`;
+                profileDiv.innerHTML = `<div style="grid-column: span 2; text-align:center; padding:10px;">帳號尚未授權<br><input type="text" value="${userId}" readonly style="font-size:0.7rem; text-align:center;"></div>`;
             }
         }
 
@@ -129,17 +153,21 @@
                 if (cb.checked) { checkedItems.push({ name: cb.value, amount: amt }); }
             });
 
-            if (checkedItems.length === 0) { alert("請至少勾選一個收費項目！"); return; }
+            if (checkedItems.length === 0) { alert("請勾選項目"); return; }
+            if (!document.getElementById('new-userId').value) { alert("找不到對應的 UserID，請確保該司機已登入過系統！"); return; }
 
             const payload = {
-                type: "adminAdd", userIdInput: document.getElementById('new-userId').value,
-                name: document.getElementById('new-name').value, carNo: document.getElementById('new-carNo').value,
+                type: "adminAdd", 
+                userIdInput: document.getElementById('new-userId').value,
+                name: document.getElementById('new-name').value, 
+                carNo: document.getElementById('new-carNo').value,
                 carType: document.getElementById('new-carType').value,
-                items: checkedItems, payStatus: document.getElementById('new-status').value === "true",
+                items: checkedItems, 
+                payStatus: document.getElementById('new-status').value === "true",
                 joinDate: new Date().toLocaleDateString()
             };
-            await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-            alert("已成功新增 " + checkedItems.length + " 筆帳務紀錄！"); location.reload();
+            const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+            alert(await res.text()); location.reload();
         }
 
         function showAdminLogin() { document.getElementById('app').classList.add('hidden'); document.getElementById('admin-login').classList.remove('hidden'); }
