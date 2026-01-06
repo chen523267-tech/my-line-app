@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>禾禾租車管理系統 V2</title>
+    <title>禾禾租車管理系統</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #f0f2f5; padding: 20px; text-align: center; }
+        body { font-family: -apple-system, sans-serif; background: #f0f2f5; padding: 15px; text-align: center; margin: 0; }
         .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: 15px; text-align: left; }
         .hidden { display: none; }
-        .profile-info { font-size: 0.9rem; line-height: 1.8; color: #444; }
+        .profile-info { font-size: 0.95rem; line-height: 1.8; color: #444; }
         .profile-info b { color: #1a73e8; }
         .item { border-bottom: 1px solid #eee; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; }
         .status { font-weight: bold; border-radius: 20px; padding: 4px 12px; font-size: 0.8rem; }
@@ -24,7 +24,7 @@
     <div id="loader" style="margin-top: 100px; color: #666;"><h3>系統連線中...</h3></div>
 
     <div id="app" class="hidden">
-        <h2 id="user-name">你好</h2>
+        <h2 id="user-name" style="margin: 10px 0;">你好</h2>
         
         <div class="card">
             <h3 style="margin:0 0 10px 0; color:#1a73e8;">🚗 車輛與合約資訊</h3>
@@ -37,9 +37,10 @@
         </div>
 
         <div class="card">
-            <h3>📸 上傳繳費收據</h3>
+            <h3 style="margin:0;">📸 上傳繳費收據</h3>
+            <p style="font-size:0.8rem; color:#666;">請選擇轉帳截圖或收據照片上傳</p>
             <input type="file" id="receipt-file" accept="image/*">
-            <button onclick="uploadReceipt()" class="btn-orange">送出收據照片</button>
+            <button id="upload-btn" onclick="uploadReceipt()" class="btn-orange">送出收據照片</button>
         </div>
         
         <button onclick="showAdminLogin()" class="btn-blue">管理員登入</button>
@@ -51,9 +52,7 @@
         <input type="text" id="new-car-no" placeholder="車號 (如: ABC-1234)">
         <input type="text" id="new-car-model" placeholder="車型 (如: Camry)">
         <select id="new-comp-status">
-            <option value="租車">租車</option>
-            <option value="靠行">靠行</option>
-            <option value="換證">換證</option>
+            <option value="租車">租車</option><option value="靠行">靠行</option><option value="換證">換證</option>
         </select>
         <select id="new-item">
             <option value="車租">車租 (30天/次)</option>
@@ -76,7 +75,9 @@
 
     <script>
         const LIFF_ID = "2008825791-99Vl1KKs"; 
-        const API_URL = "你的最新部署網址"; // ⚠️ 記得換成剛才複製的新網址
+        // ⚠️ 下面這行網址請記得換成你剛才複製的最新的那一個
+        const API_URL = "https://script.google.com/macros/s/AKfycbzLdEr-LHoejFMpThHvzXSs7ARu_RkFPWIVcMPWtRo4zNBW6OVFRUR2iwnsd2Pat-QS/exec"; 
+        let currentUserName = "";
 
         async function start() {
             try {
@@ -84,48 +85,68 @@
                 if (!liff.isLoggedIn()) { liff.login(); } 
                 else {
                     const profile = await liff.getProfile();
-                    const currentUserName = profile.displayName;
+                    currentUserName = profile.displayName;
                     const res = await fetch(API_URL);
-                    const data = await res.json();
-                    document.getElementById('loader').classList.add('hidden');
-                    document.getElementById('app').classList.remove('hidden');
-                    document.getElementById('user-name').innerText = "你好，" + currentUserName;
-                    renderUI(data, currentUserName);
+                    const text = await res.text();
+                    try {
+                        const data = JSON.parse(text);
+                        document.getElementById('loader').classList.add('hidden');
+                        document.getElementById('app').classList.remove('hidden');
+                        document.getElementById('user-name').innerText = "你好，" + currentUserName;
+                        renderUI(data);
+                    } catch(e) { alert("系統回應格式錯誤，請檢查試算表分頁名稱是否為 Data"); }
                 }
-            } catch (err) { alert("失敗：" + err); }
+            } catch (err) { alert("連線失敗：" + err); }
         }
 
-        function renderUI(data, name) {
-            const myData = data.filter(r => String(r.姓名).trim() === name.trim());
-            
-            // 1. 車輛資訊
+        function renderUI(data) {
+            const myData = data.filter(r => String(r.姓名).trim() === currentUserName.trim());
             const profileDiv = document.getElementById('user-profile');
             if (myData.length > 0) {
-                const u = myData[myData.length - 1]; // 抓最新的一筆
+                const u = myData[myData.length - 1]; // 抓最新的一筆顯示基本資料
                 profileDiv.innerHTML = `
-                    <p><b>車號：</b>${u.車號 || '未設定'}</p>
-                    <p><b>車型：</b>${u.車型 || '未設定'}</p>
-                    <p><b>狀態：</b>${u.車行狀態 || '未設定'}</p>
+                    <p><b>車號：</b>${u.車號 || '尚未設定'}</p>
+                    <p><b>車型：</b>${u.車型 || '尚未設定'}</p>
+                    <p><b>合約狀態：</b>${u.車行狀態 || '尚未設定'}</p>
                     <p><b>下次繳費日期：</b><span style="color:red; font-weight:bold;">${u.下次繳費日期 || '暫無資料'}</span></p>
                 `;
-            }
+            } else { profileDiv.innerHTML = "尚未建立基本資料。"; }
 
-            // 2. 帳務
             const listDiv = document.getElementById('list');
             listDiv.innerHTML = myData.length > 0 ? myData.map(r => `
                 <div class="item">
                     <div><b>${r.項目}</b><br><small>$${r.金額}</small></div>
                     <div class="status" style="color:${r.狀態==='已繳'?'green':'red'}">${r.狀態}</div>
                 </div>
-            `).join('') : "暫無明細";
+            `).join('') : "暫無明細資料。";
         }
 
-        // --- 管理員操作 ---
+        async function uploadReceipt() {
+            const fileInput = document.getElementById('receipt-file');
+            const uploadBtn = document.getElementById('upload-btn');
+            if (fileInput.files.length === 0) { alert("請先選擇照片！"); return; }
+            uploadBtn.innerText = "正在上傳..."; uploadBtn.disabled = true;
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const base64 = e.target.result.split(',')[1];
+                const payload = { type: "uploadReceipt", name: currentUserName, base64: base64, mimeType: file.type };
+                try {
+                    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+                    const result = await response.text();
+                    alert("伺服器回應：" + result);
+                    location.reload();
+                } catch (err) { alert("上傳失敗"); uploadBtn.disabled = false; uploadBtn.innerText = "重新送出照片"; }
+            };
+            reader.readAsDataURL(file);
+        }
+
         function showAdminLogin() { document.getElementById('app').classList.add('hidden'); document.getElementById('admin-login').classList.remove('hidden'); }
         function handleAdminLogin() {
             if(document.getElementById('admin-acc').value === "admin" && document.getElementById('admin-pwd').value === "admin123") {
                 document.getElementById('admin-login').classList.add('hidden'); document.getElementById('admin-view').classList.remove('hidden');
-            } else { alert("錯誤"); }
+            } else { alert("帳號密碼錯誤"); }
         }
 
         async function submitToSheet() {
@@ -140,13 +161,12 @@
                 status: document.getElementById('new-status').value,
                 joinDate: new Date().toLocaleDateString()
             };
-            await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-            alert("資料已儲存，下次繳費日期已自動計算！");
-            location.reload();
+            try {
+                await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+                alert("儲存成功！下次繳費日期已自動算出。");
+                location.reload();
+            } catch(e) { alert("儲存失敗"); }
         }
-
-        // --- 上傳功能 (略, 同前版本) ---
-        async function uploadReceipt() { /* ...維持原本代碼... */ }
         start();
     </script>
 </body>
