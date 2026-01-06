@@ -6,29 +6,29 @@
     <title>禾禾租車管理系統</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #f0f2f5; padding: 15px; text-align: center; margin: 0; }
+        body { font-family: -apple-system, sans-serif; background: #f0f2f5; padding: 15px; margin: 0; }
         .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: 15px; text-align: left; }
         .hidden { display: none; }
-        .profile-info { font-size: 0.95rem; line-height: 1.8; color: #444; }
-        .profile-info b { color: #1a73e8; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9rem; margin-top: 10px; }
+        .info-item b { color: #1a73e8; display: block; font-size: 0.75rem; text-transform: uppercase; }
         .item { border-bottom: 1px solid #eee; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; }
-        .status { font-weight: bold; border-radius: 20px; padding: 4px 12px; font-size: 0.8rem; }
+        .status-tag { font-weight: bold; border-radius: 20px; padding: 4px 10px; font-size: 0.75rem; }
         input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        button { cursor: pointer; border: none; width: 100%; padding: 12px; border-radius: 8px; font-size: 1rem; color: white; }
+        button { cursor: pointer; border: none; width: 100%; padding: 12px; border-radius: 8px; font-size: 1rem; color: white; transition: 0.3s; }
         .btn-blue { background: #1a73e8; margin-top: 15px; }
         .btn-green { background: #28a745; }
         .btn-orange { background: #f39c12; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <div id="loader" style="margin-top: 100px; color: #666;"><h3>系統連線中...</h3></div>
+    <div id="loader" style="margin-top: 100px; text-align: center; color: #666;"><h3>系統連線中...</h3></div>
 
     <div id="app" class="hidden">
-        <h2 id="user-name" style="margin: 10px 0;">你好</h2>
+        <h2 id="user-name" style="text-align:center;">你好</h2>
         
         <div class="card">
-            <h3 style="margin:0 0 10px 0; color:#1a73e8;">🚗 車輛與合約資訊</h3>
-            <div class="profile-info" id="user-profile"></div>
+            <h3 style="margin:0; color:#1a73e8; border-left: 4px solid #1a73e8; padding-left: 10px;">🚗 車輛與合約資訊</h3>
+            <div id="user-profile" class="info-grid"></div>
         </div>
 
         <div class="card">
@@ -37,47 +37,44 @@
         </div>
 
         <div class="card">
-            <h3 style="margin:0;">📸 上傳繳費收據</h3>
-            <p style="font-size:0.8rem; color:#666;">請選擇轉帳截圖或收據照片上傳</p>
+            <h3>📸 上傳收據</h3>
             <input type="file" id="receipt-file" accept="image/*">
-            <button id="upload-btn" onclick="uploadReceipt()" class="btn-orange">送出收據照片</button>
+            <button id="upload-btn" onclick="uploadReceipt()" class="btn-orange">送出照片</button>
         </div>
         
         <button onclick="showAdminLogin()" class="btn-blue">管理員登入</button>
     </div>
 
     <div id="admin-view" class="card hidden">
-        <h3 style="margin-top:0;">新增客戶帳務</h3>
+        <h3>新增帳務資料</h3>
         <input type="text" id="new-name" placeholder="客戶 LINE 姓名">
-        <input type="text" id="new-car-no" placeholder="車號 (如: ABC-1234)">
-        <input type="text" id="new-car-model" placeholder="車型 (如: Camry)">
-        <select id="new-comp-status">
+        <div style="display:flex; gap:5px;">
+            <input type="text" id="new-carNo" placeholder="車號">
+            <input type="text" id="new-carType" placeholder="車型">
+        </div>
+        <select id="new-carStatus">
             <option value="租車">租車</option><option value="靠行">靠行</option><option value="換證">換證</option>
         </select>
         <select id="new-item">
-            <option value="車租">車租 (30天/次)</option>
-            <option value="行費">行費 (1年/次)</option>
-            <option value="保險費">保險費 (1年/次)</option>
-            <option value="換證">換證 (1年/次)</option>
+            <option value="車租">車租 (30天)</option><option value="行費">行費 (1年)</option>
+            <option value="保險費">保險費 (1年)</option><option value="換證">換證 (1年)</option>
             <option value="罰單">罰單 (不定期)</option>
         </select>
         <input type="number" id="new-amount" placeholder="金額">
-        <select id="new-status"><option value="未繳">未繳</option><option value="已繳">已繳</option></select>
-        <button onclick="submitToSheet()" class="btn-green">儲存並計算下次日期</button>
-        <button onclick="location.reload()" style="background:none; color:#666; width:100%; margin-top:10px;">取消返回</button>
+        <select id="new-payStatus"><option value="未繳">未繳</option><option value="已繳">已繳</option></select>
+        <button onclick="submitToSheet()" class="btn-green">儲存並自動計算日期</button>
+        <button onclick="location.reload()" style="background:none; color:#666; margin-top:10px;">取消</button>
     </div>
 
     <div id="admin-login" class="card hidden">
-        <h3>管理員驗證</h3>
+        <h3>管理員登入</h3>
         <input type="text" id="admin-acc" placeholder="帳號"><input type="password" id="admin-pwd" placeholder="密碼">
-        <button onclick="handleAdminLogin()" class="btn-blue">登入</button>
+        <button onclick="handleAdminLogin()" class="btn-blue">確認登入</button>
     </div>
 
     <script>
         const LIFF_ID = "2008825791-99Vl1KKs"; 
-        // ⚠️ 下面這行網址請記得換成你剛才複製的最新的那一個
-        const API_URL = "https://script.google.com/macros/s/AKfycbzLdEr-LHoejFMpThHvzXSs7ARu_RkFPWIVcMPWtRo4zNBW6OVFRUR2iwnsd2Pat-QS/exec"; 
-        let currentUserName = "";
+        const API_URL = "https://script.google.com/macros/s/AKfycbzLdEr-LHoejFMpThHvzXSs7ARu_RkFPWIVcMPWtRo4zNBW6OVFRUR2iwnsd2Pat-QS/exec"; // ⚠️ 換成最新網址
 
         async function start() {
             try {
@@ -85,59 +82,53 @@
                 if (!liff.isLoggedIn()) { liff.login(); } 
                 else {
                     const profile = await liff.getProfile();
-                    currentUserName = profile.displayName;
+                    const name = profile.displayName;
                     const res = await fetch(API_URL);
                     const text = await res.text();
-                    try {
-                        const data = JSON.parse(text);
-                        document.getElementById('loader').classList.add('hidden');
-                        document.getElementById('app').classList.remove('hidden');
-                        document.getElementById('user-name').innerText = "你好，" + currentUserName;
-                        renderUI(data);
-                    } catch(e) { alert("系統回應格式錯誤，請檢查試算表分頁名稱是否為 Data"); }
+                    const data = JSON.parse(text);
+                    document.getElementById('loader').classList.add('hidden');
+                    document.getElementById('app').classList.remove('hidden');
+                    document.getElementById('user-name').innerText = "你好，" + name;
+                    renderUI(data, name);
                 }
             } catch (err) { alert("連線失敗：" + err); }
         }
 
-        function renderUI(data) {
-            const myData = data.filter(r => String(r.姓名).trim() === currentUserName.trim());
+        function renderUI(data, name) {
+            const myData = data.filter(r => String(r.姓名).trim() === name.trim());
             const profileDiv = document.getElementById('user-profile');
+            
             if (myData.length > 0) {
-                const u = myData[myData.length - 1]; // 抓最新的一筆顯示基本資料
+                const u = myData[myData.length - 1]; // 抓最新一筆
                 profileDiv.innerHTML = `
-                    <p><b>車號：</b>${u.車號 || '尚未設定'}</p>
-                    <p><b>車型：</b>${u.車型 || '尚未設定'}</p>
-                    <p><b>合約狀態：</b>${u.車行狀態 || '尚未設定'}</p>
-                    <p><b>下次繳費日期：</b><span style="color:red; font-weight:bold;">${u.下次繳費日期 || '暫無資料'}</span></p>
+                    <div class="info-item"><b>車號</b>${u.車號 || '-'}</div>
+                    <div class="info-item"><b>車型</b>${u.車型 || '-'}</div>
+                    <div class="info-item"><b>合約狀態</b>${u.狀態 || '-'}</div>
+                    <div class="info-item"><b>下次繳費</b><span style="color:red;font-weight:bold;">${u.下次繳費日期 || '無'}</span></div>
                 `;
-            } else { profileDiv.innerHTML = "尚未建立基本資料。"; }
+            }
 
             const listDiv = document.getElementById('list');
             listDiv.innerHTML = myData.length > 0 ? myData.map(r => `
                 <div class="item">
-                    <div><b>${r.項目}</b><br><small>$${r.金額}</small></div>
-                    <div class="status" style="color:${r.狀態==='已繳'?'green':'red'}">${r.狀態}</div>
+                    <div><b>${r.收費項目}</b><br><small>$${r.金額}</small></div>
+                    <div class="status-tag" style="color:${r.繳費狀態==='已繳'?'#188038':'#d93025'}">${r.繳費狀態}</div>
                 </div>
-            `).join('') : "暫無明細資料。";
+            `).join('') : "暫無明細資料";
         }
 
         async function uploadReceipt() {
             const fileInput = document.getElementById('receipt-file');
             const uploadBtn = document.getElementById('upload-btn');
-            if (fileInput.files.length === 0) { alert("請先選擇照片！"); return; }
-            uploadBtn.innerText = "正在上傳..."; uploadBtn.disabled = true;
-
+            if (fileInput.files.length === 0) { alert("請選照片"); return; }
+            uploadBtn.innerText = "上傳中..."; uploadBtn.disabled = true;
             const file = fileInput.files[0];
             const reader = new FileReader();
             reader.onload = async function(e) {
                 const base64 = e.target.result.split(',')[1];
-                const payload = { type: "uploadReceipt", name: currentUserName, base64: base64, mimeType: file.type };
-                try {
-                    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-                    const result = await response.text();
-                    alert("伺服器回應：" + result);
-                    location.reload();
-                } catch (err) { alert("上傳失敗"); uploadBtn.disabled = false; uploadBtn.innerText = "重新送出照片"; }
+                const payload = { type: "uploadReceipt", name: liff.getDecodedIDToken().name || "User", base64: base64, mimeType: file.type };
+                const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+                alert(await response.text()); location.reload();
             };
             reader.readAsDataURL(file);
         }
@@ -146,26 +137,23 @@
         function handleAdminLogin() {
             if(document.getElementById('admin-acc').value === "admin" && document.getElementById('admin-pwd').value === "admin123") {
                 document.getElementById('admin-login').classList.add('hidden'); document.getElementById('admin-view').classList.remove('hidden');
-            } else { alert("帳號密碼錯誤"); }
+            } else { alert("錯誤"); }
         }
 
         async function submitToSheet() {
             const payload = {
                 type: "adminAdd", acc: "admin", pwd: "---",
                 name: document.getElementById('new-name').value,
-                carNumber: document.getElementById('new-car-no').value,
-                carModel: document.getElementById('new-car-model').value,
-                compStatus: document.getElementById('new-comp-status').value,
+                carNo: document.getElementById('new-carNo').value,
+                carType: document.getElementById('new-carType').value,
+                carStatus: document.getElementById('new-carStatus').value,
                 item: document.getElementById('new-item').value,
                 amount: document.getElementById('new-amount').value,
-                status: document.getElementById('new-status').value,
+                payStatus: document.getElementById('new-payStatus').value,
                 joinDate: new Date().toLocaleDateString()
             };
-            try {
-                await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-                alert("儲存成功！下次繳費日期已自動算出。");
-                location.reload();
-            } catch(e) { alert("儲存失敗"); }
+            await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+            alert("成功儲存並計算日期！"); location.reload();
         }
         start();
     </script>
