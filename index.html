@@ -3,75 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>禾禾租車管理系統 V24</title>
+    <title>禾禾租車管理系統</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        :root { --primary: #1a73e8; --success: #34a853; --danger: #ea4335; --bg: #f8f9fa; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); padding: 15px; margin: 0; color: #202124; }
-        .card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
-        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .info-box { background: var(--bg); padding: 12px; border-radius: 12px; }
-        .info-box label { display: block; font-size: 0.75rem; color: #666; margin-bottom: 2px; }
-        .info-box div { font-size: 0.95rem; font-weight: bold; }
-        .status-badge { padding: 5px 10px; border-radius: 15px; font-size: 0.75rem; font-weight: bold; }
+        :root {
+            --primary: #1a73e8;
+            --success: #34a853;
+            --danger: #ea4335;
+            --bg: #f0f2f5; /* 輕微深一點的灰色背景，讓卡片更突出 */
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background: var(--bg); 
+            padding: 12px; 
+            margin: 0; 
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* 讓內容居中 */
+        }
+        /* 限制最大寬度，防止在大螢幕上變太醜 */
+        .container {
+            width: 100%;
+            max-width: 450px;
+        }
+        h2 { text-align: center; color: #202124; margin: 20px 0; font-size: 1.4rem; }
+        
+        .card { 
+            background: white; 
+            padding: 16px; 
+            border-radius: 20px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+            margin-bottom: 16px; 
+        }
+        .card-title { font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-bottom: 12px; display: flex; align-items: center; }
+        
+        /* 4 格資訊優化 */
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .info-box { background: #f8f9fa; padding: 12px; border-radius: 12px; border: 1px solid #edf2f7; }
+        .info-box label { display: block; font-size: 0.7rem; color: #718096; margin-bottom: 4px; }
+        .info-box div { font-size: 0.95rem; font-weight: 800; color: #2d3748; }
+        .date-highlight { color: var(--danger) !important; }
+
+        /* 清單樣式 */
+        .item { 
+            padding: 14px 0; 
+            border-bottom: 1px solid #f1f3f4; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+        .item:last-child { border-bottom: none; }
+        .item-detail b { font-size: 1rem; color: #1a202c; }
+        .item-detail small { color: #718096; }
+        
+        .status-badge { 
+            padding: 5px 12px; 
+            border-radius: 12px; 
+            font-size: 0.75rem; 
+            font-weight: 700; 
+        }
         .paid { background: #e6f4ea; color: var(--success); }
         .unpaid { background: #fce8e6; color: var(--danger); }
-        .item { padding: 12px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
-        input, select { width: 100%; padding: 12px; margin: 5px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 1rem; }
-        .multi-row { background: #f9f9f9; padding: 10px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #eee; }
-        button { cursor: pointer; border: none; width: 100%; padding: 14px; border-radius: 10px; font-weight: bold; font-size: 1rem; }
-        .btn-main { background: var(--primary); color: white; margin-top: 15px; }
+
+        /* 表單與按鈕 */
+        input, select { width: 100%; padding: 12px; margin: 6px 0; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 1rem; box-sizing: border-box; }
+        button { cursor: pointer; border: none; width: 100%; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 1rem; transition: 0.2s; }
+        .btn-main { background: var(--primary); color: white; margin-top: 10px; }
+        .btn-main:active { opacity: 0.8; }
         .hidden { display: none; }
+        
+        #loader { margin-top: 40vh; text-align: center; color: #718096; }
     </style>
 </head>
 <body>
-    <div id="loader" style="margin-top: 45vh; text-align: center;"><h3>🛡️ 正在讀取最新的帳務資料...</h3></div>
+    <div class="container">
+        <div id="loader">🛡️ 正在讀取精緻介面...</div>
 
-    <div id="app" class="hidden">
-        <h2 id="user-name" style="text-align:center; margin-bottom: 20px;">你好</h2>
-        <div class="card">
-            <div id="user-profile" class="info-grid"></div>
-        </div>
-        <div class="card"><div id="list"></div></div>
-        <div class="card">
-            <input type="file" id="receipt-file" accept="image/*">
-            <button onclick="uploadReceipt()" class="btn-main" style="background:#f39c12;">確認送出收據照片</button>
-        </div>
-        <button onclick="showAdminLogin()" style="background:none; color:#666; font-size:0.8rem; margin-top:20px;">管理員後台入口</button>
-    </div>
+        <div id="app" class="hidden">
+            <h2 id="user-name">你好</h2>
+            
+            <div class="card">
+                <div class="card-title">🚘 車輛與合約資訊</div>
+                <div id="user-profile" class="info-grid"></div>
+            </div>
 
-    <div id="admin-view" class="card hidden">
-        <h3 style="color:var(--primary);">新增帳務 (全功能修復版)</h3>
-        <input list="driver-list" id="new-name" oninput="autoFill()" placeholder="搜尋姓名自動帶出 ID">
-        <datalist id="driver-list"></datalist>
-        <input type="text" id="new-userId" placeholder="司機 UserID">
-        
-        <div style="display:flex; gap:10px;">
-            <div style="flex:1;"><label style="font-size:0.75rem;">加入日期</label><input type="date" id="new-date"></div>
-            <div style="flex:1;"><label style="font-size:0.75rem;">車號</label><input type="text" id="new-carNo" placeholder="如 abc-1234"></div>
-        </div>
-        
-        <div style="display:flex; gap:10px;">
-            <select id="new-carType"><option value="油電CC">油電CC</option><option value="阿法">阿法</option></select>
-            <select id="new-carStatus"><option value="租車">租車</option><option value="靠行">靠行</option></select>
+            <div class="card">
+                <div class="card-title">💰 帳務明細</div>
+                <div id="list"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📸 上傳繳費收據</div>
+                <input type="file" id="receipt-file" accept="image/*">
+                <button onclick="uploadReceipt()" class="btn-main" style="background:#f6ad55;">確認送出照片</button>
+            </div>
+            
+            <button onclick="showAdmin()" style="background:none; color:#a0aec0; font-size:0.8rem; margin-top:10px;">管理員登入</button>
         </div>
 
-        <div class="multi-area">
-            <div class="multi-row"><input type="checkbox" value="車租"> 車租 <input type="number" class="item-amt" placeholder="金額"></div>
-            <div class="multi-row"><input type="checkbox" value="行費"> 行費 <input type="number" class="item-amt" placeholder="金額"></div>
-            <div class="multi-row"><input type="checkbox" value="罰單"> 罰單 <input type="number" class="item-amt" placeholder="金額"></div>
+        <div id="admin-view" class="card hidden">
+            <h3 style="color:var(--primary); margin-top:0;">新增帳務</h3>
+            <input list="driver-list" id="new-name" oninput="autoFill()" placeholder="搜尋司機姓名">
+            <datalist id="driver-list"></datalist>
+            <input type="text" id="new-userId" placeholder="UserID">
+            <div style="display:flex; gap:10px;"><input type="date" id="new-date"><input type="text" id="new-carNo" placeholder="車號"></div>
+            <div style="display:flex; gap:10px;">
+                <select id="new-carType"><option value="油電CC">油電CC</option><option value="阿法">阿法</option></select>
+                <select id="new-carStatus"><option value="租車">租車</option><option value="靠行">靠行</option></select>
+            </div>
+            <div style="padding:10px 0;">
+                <label style="font-size:0.8rem; font-weight:bold;"><input type="checkbox" id="check-rent"> 車租</label>
+                <input type="number" id="amt-rent" placeholder="金額">
+            </div>
+            <select id="pay-status"><option value="false">未繳</option><option value="true">已繳</option></select>
+            <button onclick="submit()" class="btn-main" style="background:var(--success);">儲存帳務</button>
+            <button onclick="location.reload()" style="background:none; color:#718096; margin-top:10px;">取消</button>
         </div>
-        
-        <select id="pay-status"><option value="false">繳費狀態：未繳</option><option value="true">繳費狀態：已繳</option></select>
-        <button onclick="submit()" class="btn-main" style="background:var(--success);">確認儲存帳務</button>
-        <button onclick="location.reload()" style="background:#eee; margin-top:10px;">返回首頁</button>
-    </div>
 
-    <div id="admin-login" class="card hidden">
-        <h3>管理員登入</h3>
-        <input type="text" id="admin-acc" placeholder="管理員帳號">
-        <input type="password" id="admin-pwd" placeholder="管理員密碼">
-        <button onclick="checkAdmin()" class="btn-main">確認登入</button>
+        <div id="admin-login" class="card hidden">
+            <input type="password" id="admin-pwd" placeholder="密碼">
+            <button onclick="checkAdmin()" class="btn-main">登入</button>
+        </div>
     </div>
 
     <script>
@@ -96,58 +148,51 @@
                     document.getElementById('user-name').innerText = "你好，" + profile.displayName;
                     renderUI(driverData, currentUserId);
                 }
-            } catch (err) { alert("連線失敗：" + err); }
+            } catch (err) { alert("連線失敗"); }
         }
 
-        // 🛡️ 日期清洗器：斬斷 T16:00 亂碼
-        function cleanDate(str) {
-            if (!str) return '無';
-            return str.toString().split('T')[0].replace(/-/g, '/');
-        }
-
-        function autoFill() {
-            const name = document.getElementById('new-name').value;
-            const m = driverData.filter(d => String(d.姓名).trim() === name.trim());
-            if (m.length > 0) {
-                const realId = m.find(d => String(d.帳號).startsWith('U'));
-                const last = m[m.length - 1];
-                document.getElementById('new-userId').value = realId ? realId.帳號 : "待補 ID";
-                document.getElementById('new-carNo').value = last.車號 || "";
-                document.getElementById('new-carType').value = last.車型 || "";
-                document.getElementById('new-carStatus').value = last.狀態 || "租車"; // 修正為對位「狀態」
-            }
+        // ✨ 格式清洗器
+        function cleanDate(d) {
+            if (!d) return '無';
+            return d.toString().split('T')[0].replace(/-/g, '/');
         }
 
         function renderUI(data, uid) {
-            const my = data.filter(r => String(r.帳號).trim() === uid.trim());
+            const myData = data.filter(r => String(r.帳號).trim() === uid.trim());
             const profileDiv = document.getElementById('user-profile');
-            if (my.length > 0) {
-                const last = my.filter(r => r.下次繳費日期).pop() || my[my.length-1];
-                // 🛡️ 修正：顯示日期前先透過 cleanDate 清除 ISO 字串
+            if (myData.length > 0) {
+                const last = myData.filter(r => r.下次繳費日期).pop() || myData[myData.length-1];
+                // 恢復 4 格視覺化，加上清洗後的日期
                 profileDiv.innerHTML = `
                     <div class="info-box"><label>車號</label><div>${last.車號 || '-'}</div></div>
                     <div class="info-box"><label>車型</label><div>${last.車型 || '-'}</div></div>
                     <div class="info-box"><label>合約狀態</label><div>${last.狀態 || '-'}</div></div>
-                    <div class="info-box"><label>下次繳費</label><div style="color:red;">${cleanDate(last.下次繳費日期)}</div></div>
+                    <div class="info-box"><label>下次繳費</label><div class="date-highlight">${cleanDate(last.下次繳費日期)}</div></div>
                 `;
-                document.getElementById('list').innerHTML = my.map(r => `
+                document.getElementById('list').innerHTML = myData.map(r => `
                     <div class="item">
-                        <div><b>${r.收費項目}</b><br><small>NT$ ${r.金額}</small></div>
-                        <div class="status-badge ${ (r.繳費狀態===true||r.繳費狀態==="TRUE"||r.繳費狀態==="已繳")?'paid':'unpaid'}">
-                            ${ (r.繳費狀態===true||r.繳費狀態==="TRUE"||r.繳費狀態==="已繳")?'✅ 已繳':'⚠️ 未繳'}
-                        </div>
+                        <div class="item-detail"><b>${r.收費項目}</b><br><small>NT$ ${r.金額}</small></div>
+                        <div class="status-badge ${ (r.繳費狀態===true||r.繳費狀態==="TRUE"||r.繳費狀態==="已繳")?'paid':'unpaid'}">${ (r.繳費狀態===true||r.繳費狀態==="TRUE"||r.繳費狀態==="已繳")?'✅ 已繳':'⚠️ 未繳'}</div>
                     </div>
                 `).join('');
+            }
+        }
+        
+        function autoFill() {
+            const name = document.getElementById('new-name').value;
+            const m = driverData.filter(d => String(d.姓名).trim() === name.trim());
+            if (m.length > 0) {
+                const last = m[m.length - 1];
+                document.getElementById('new-userId').value = m.find(d => String(d.帳號).startsWith('U'))?.帳號 || "待補 ID";
+                document.getElementById('new-carNo').value = last.車號 || "";
+                document.getElementById('new-carType').value = last.車型 || "";
+                document.getElementById('new-carStatus').value = last.狀態 || "租車";
             }
         }
 
         async function submit() {
             const items = [];
-            document.querySelectorAll('.multi-row').forEach(row => {
-                const cb = row.querySelector('input[type="checkbox"]');
-                const amt = row.querySelector('.item-amt').value;
-                if (cb.checked) items.push({ name: cb.value, amount: amt });
-            });
+            if(document.getElementById('check-rent').checked) items.push({ name: '車租', amount: document.getElementById('amt-rent').value });
             const payload = {
                 type: "adminAdd", userIdInput: document.getElementById('new-userId').value,
                 name: document.getElementById('new-name').value, joinDate: document.getElementById('new-date').value.replace(/-/g, '/'),
@@ -155,22 +200,18 @@
                 carStatus: document.getElementById('new-carStatus').value, items: items, payStatus: document.getElementById('pay-status').value === "true"
             };
             await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-            alert("帳務資料已成功儲存！"); location.reload();
+            alert("已儲存"); location.reload();
         }
-        function showAdminLogin() { document.getElementById('app').classList.add('hidden'); document.getElementById('admin-login').classList.remove('hidden'); }
-        function checkAdmin() { 
-            if(document.getElementById('admin-acc').value === "admin" && document.getElementById('admin-pwd').value === "admin123") { 
-                document.getElementById('admin-login').classList.add('hidden'); document.getElementById('admin-view').classList.remove('hidden'); 
-            } else { alert("帳號或密碼錯誤"); }
-        }
+        function showAdmin() { document.getElementById('app').classList.add('hidden'); document.getElementById('admin-login').classList.remove('hidden'); }
+        function checkAdmin() { if(document.getElementById('admin-pwd').value === "admin123") { document.getElementById('admin-login').classList.add('hidden'); document.getElementById('admin-view').classList.remove('hidden'); } }
         async function uploadReceipt() {
             const fileInput = document.getElementById('receipt-file');
             if (fileInput.files.length === 0) return;
             const reader = new FileReader();
             reader.onload = async function(e) {
-                const payload = { type: "uploadReceipt", userId: currentUserId, name: liff.getDecodedIDToken().name, base64: e.target.result.split(',')[1], mimeType: fileInput.files[0].type };
+                const payload = { type: "uploadReceipt", userId: currentUserId, base64: e.target.result.split(',')[1], mimeType: fileInput.files[0].type };
                 await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-                alert("收據上傳成功"); location.reload();
+                alert("上傳成功"); location.reload();
             };
             reader.readAsDataURL(fileInput.files[0]);
         }
