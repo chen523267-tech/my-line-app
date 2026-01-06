@@ -29,7 +29,7 @@
     </style>
 </head>
 <body>
-    <div id="loader" style="margin-top: 45vh; text-align: center; color: #666;"><h3>🛡️ 禾禾租車系統載入中...</h3></div>
+    <div id="loader" style="margin-top: 45vh; text-align: center; color: #666;"><h3>🛡️ 禾禾租車系統連線中...</h3></div>
 
     <div id="app" class="hidden">
         <h2 id="user-name" style="text-align:center; margin-bottom: 20px;">你好</h2>
@@ -49,14 +49,14 @@
     </div>
 
     <div id="admin-view" class="card hidden">
-        <h3 style="color:var(--primary); margin-top:0;">新增帳務 (全連動模式)</h3>
+        <h3 style="color:var(--primary); margin-top:0;">新增帳務 (ID 優先搜尋)</h3>
         
         <label style="font-size:0.8rem; font-weight:bold;">1. 司機姓名 (輸入即連動)：</label>
         <input list="driver-list" id="new-name" oninput="autoFillData()" placeholder="輸入名字">
         <datalist id="driver-list"></datalist>
 
-        <label style="font-size:0.8rem; color:#666;">2. UserID (自動連動)：</label>
-        <input type="text" id="new-userId" placeholder="系統將自動找出 ID">
+        <label style="font-size:0.8rem; color:#666;">2. UserID (自動找出正確 ID)：</label>
+        <input type="text" id="new-userId" placeholder="系統自動尋找...">
 
         <div style="display:flex; gap:10px; margin-top:5px;">
             <div style="flex:1;"><label style="font-size:0.75rem;">車號</label><input type="text" id="new-carNo"></div>
@@ -78,7 +78,7 @@
         </div>
 
         <select id="new-status"><option value="false">繳費狀態：未繳</option><option value="true">繳費狀態：已繳</option></select>
-        <button onclick="submitToSheet()" class="btn-main" style="background:var(--success);">確認儲存並分行寫入</button>
+        <button onclick="submitToSheet()" class="btn-main" style="background:var(--success);">確認儲存</button>
         <button onclick="location.reload()" style="background:#eee; color:#666; margin-top:10px;">取消</button>
     </div>
 
@@ -116,20 +116,20 @@
             } catch (err) { alert("連線失敗"); }
         }
 
-        // ✨ 智慧全連動修正：自動帶出所有資料
+        // ✨ 強化版智慧連動：優先尋找「真 ID」而不是最後一筆
         function autoFillData() {
             const nameInput = document.getElementById('new-name').value;
-            // 抓取最後一筆紀錄，確保資料最新
             const matches = driverData.filter(d => String(d.姓名).trim() === nameInput.trim());
             if (matches.length > 0) {
+                // 1. 尋找有沒有歷史紀錄裡帶有 "U" 開頭的真正 UserID
+                const realIdRecord = matches.find(d => String(d.帳號).startsWith('U'));
+                // 2. 抓取最新的一筆紀錄（用來填車號跟車型）
                 const lastRecord = matches[matches.length - 1];
-                document.getElementById('new-userId').value = lastRecord.帳號 || "";
+
+                document.getElementById('new-userId').value = realIdRecord ? realIdRecord.帳號 : (lastRecord.帳號 || "待補 ID");
                 document.getElementById('new-carNo').value = lastRecord.車號 || "";
                 document.getElementById('new-carType').value = lastRecord.車型 || "";
-                // 連動合約狀態 (G 欄)
-                if (lastRecord.狀態) {
-                    document.getElementById('new-carStatus').value = lastRecord.狀態;
-                }
+                if (lastRecord.狀態) { document.getElementById('new-carStatus').value = lastRecord.狀態; }
             }
         }
 
@@ -139,8 +139,8 @@
             if (myData.length > 0) {
                 const dateEntry = myData.filter(r => r.下次繳費日期).pop() || myData[myData.length-1];
                 profileDiv.innerHTML = `
-                    <div class="info-box"><label>車號</label><div>${dateEntry.車號 || '-'}</div></div>
-                    <div class="info-box"><label>下次繳費</label><div style="color:red;">${dateEntry.下次繳費日期 || '無'}</div></div>
+                    <div class="info-block"><span class="info-icon">🔢</span><div class="info-content"><label>車號</label><div>${dateEntry.車號 || '-'}</div></div></div>
+                    <div class="info-block"><span class="info-icon">📅</span><div class="info-content"><label>下次繳費</label><div style="color:red;">${dateEntry.下次繳費日期 || '無'}</div></div></div>
                 `;
                 document.getElementById('list').innerHTML = myData.map(r => `
                     <div class="item">
@@ -165,7 +165,7 @@
 
             const payload = {
                 type: "adminAdd", 
-                userIdInput: document.getElementById('new-userId').value || "待補 ID",
+                userIdInput: document.getElementById('new-userId').value,
                 name: document.getElementById('new-name').value, 
                 carNo: document.getElementById('new-carNo').value,
                 carType: document.getElementById('new-carType').value,
