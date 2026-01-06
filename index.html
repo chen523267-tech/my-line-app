@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>禾禾租車 V27</title>
+    <title>禾禾租車 V28</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         :root { --primary: #1a73e8; --success: #34a853; --danger: #ea4335; --bg: #f0f2f5; }
@@ -30,7 +30,7 @@
 </head>
 <body>
     <div class="container">
-        <div id="loader" style="margin-top:40vh; text-align:center;">🛡️ 正在強力同步車號資料...</div>
+        <div id="loader" style="margin-top:40vh; text-align:center;">🛡️ 正在強力同步加入日期與車號...</div>
 
         <div id="app" class="hidden">
             <h2 style="text-align:center; color:#2d3748;" id="user-name">你好</h2>
@@ -46,21 +46,22 @@
         </div>
 
         <div id="admin-view" class="card hidden">
-            <h3 style="color:var(--primary); margin-top:0;">新增帳務 (V27 穩定版)</h3>
-            <input list="driver-list" id="new-name" oninput="autoFill()" placeholder="輸入姓名自動帶出資料">
+            <h3 style="color:var(--primary); margin-top:0;">新增帳務 (V28 終極版)</h3>
+            <label style="font-size:0.75rem; font-weight:bold;">1. 司機姓名 (輸入即連動)</label>
+            <input list="driver-list" id="new-name" oninput="autoFill()" placeholder="請選擇司機姓名">
             <datalist id="driver-list"></datalist>
             
-            <label style="font-size:0.75rem;">UserID</label>
-            <input type="text" id="new-userId">
+            <label style="font-size:0.75rem; color:#718096;">2. UserID (自動對位)</label>
+            <input type="text" id="new-userId" placeholder="系統自動尋找...">
             
             <div style="display:flex; gap:10px;">
-                <div style="flex:1;"><label style="font-size:0.75rem;">加入日期</label><input type="date" id="new-date"></div>
-                <div style="flex:1;"><label style="font-size:0.75rem;">車號</label><input type="text" id="new-carNo"></div>
+                <div style="flex:1;"><label style="font-size:0.75rem; color:#718096;">加入日期</label><input type="date" id="new-date"></div>
+                <div style="flex:1;"><label style="font-size:0.75rem; color:#718096;">車號</label><input type="text" id="new-carNo" placeholder="自動填入"></div>
             </div>
             
             <div style="display:flex; gap:10px;">
-                <select id="new-carType"><option value="">--車型--</option><option value="油電CC">油電CC</option><option value="阿法">阿法</option></select>
-                <select id="new-carStatus"><option value="租車">租車</option><option value="靠行">靠行</option></select>
+                <select id="new-carType"><option value="">--車型--</option><option value="油電CC">油電CC</option><option value="阿法">阿法</option><option value="尊榮黑">尊榮黑</option></select>
+                <select id="new-carStatus"><option value="租車">租車</option><option value="靠行">靠行</option><option value="換證">換證</option></select>
             </div>
 
             <div style="margin-top:15px;">
@@ -72,8 +73,8 @@
             </div>
 
             <select id="pay-status"><option value="false">繳費狀態：未繳</option><option value="true">繳費狀態：已繳</option></select>
-            <button onclick="submit()" class="btn-main" style="background:var(--success);">確認儲存</button>
-            <button onclick="location.reload()" style="background:none; color:#718096; margin-top:10px;">取消</button>
+            <button onclick="submit()" class="btn-main" style="background:var(--success);">儲存帳務</button>
+            <button onclick="location.reload()" style="background:none; color:#718096; margin-top:10px; width:100%;">取消</button>
         </div>
 
         <div id="admin-login" class="card hidden">
@@ -105,7 +106,14 @@
             } catch (err) { alert("連線失敗"); }
         }
 
-        // ✨ 強化強制填入功能
+        // ✨ 格式清洗器：對齊 ISO 與 試算表格式
+        function cleanDate(d) {
+            if (!d) return '';
+            const raw = d.toString().split('T')[0]; // 切掉時間
+            return raw.replace(/\//g, '-'); // 轉換為 HTML5 date 格式 (YYYY-MM-DD)
+        }
+
+        // ✨ 強化強制連動功能 V28
         function autoFill() {
             const name = document.getElementById('new-name').value;
             const matches = driverData.filter(d => String(d.姓名).trim() === name.trim());
@@ -113,16 +121,17 @@
                 const last = matches[matches.length - 1];
                 const realId = matches.find(d => String(d.帳號).startsWith('U'));
                 
-                // 強制賦值
-                const idEl = document.getElementById('new-userId');
-                const carEl = document.getElementById('new-carNo');
-                const typeEl = document.getElementById('new-carType');
-                const statusEl = document.getElementById('new-carStatus');
+                // 強制注入數據到所有欄位
+                document.getElementById('new-userId').value = realId ? realId.帳號 : "待補 ID";
+                document.getElementById('new-carNo').value = last.車號 || ""; 
+                document.getElementById('new-carType').value = last.車型 || "";
+                document.getElementById('new-carStatus').value = last.狀態 || "租車";
 
-                if(idEl) idEl.value = realId ? realId.帳號 : "待補 ID";
-                if(carEl) carEl.value = last.車號 || ""; // 這裡保證填入
-                if(typeEl) typeEl.value = last.車型 || "";
-                if(statusEl) statusEl.value = last.狀態 || "租車";
+                // 處理加入日期連動
+                if (last.加入日期) {
+                    const cleanD = cleanDate(last.加入日期);
+                    document.getElementById('new-date').value = cleanD;
+                }
             }
         }
 
@@ -134,8 +143,8 @@
                 profileDiv.innerHTML = `
                     <div class="info-box"><label>車號</label><div>${last.車號 || '-'}</div></div>
                     <div class="info-box"><label>車型</label><div>${last.車型 || '-'}</div></div>
-                    <div class="info-box"><label>狀態</label><div>${last.狀態 || '-'}</div></div>
-                    <div class="info-box"><label>下次繳費</label><div style="color:red;">${last.下次繳費日期 ? last.下次繳費日期.split('T')[0] : '無'}</div></div>
+                    <div class="info-box"><label>合約狀態</label><div>${last.狀態 || '-'}</div></div>
+                    <div class="info-box"><label>下次繳費</label><div style="color:red;">${cleanDate(last.下次繳費日期).replace(/-/g, '/')}</div></div>
                 `;
                 document.getElementById('list').innerHTML = myData.map(r => `
                     <div class="item">
@@ -160,7 +169,7 @@
                 carStatus: document.getElementById('new-carStatus').value, items: items, payStatus: document.getElementById('pay-status').value === "true"
             };
             await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-            alert("儲存成功"); location.reload();
+            alert("已成功儲存帳務資料！"); location.reload();
         }
         function showAdmin() { document.getElementById('app').classList.add('hidden'); document.getElementById('admin-login').classList.remove('hidden'); }
         function checkAdmin() { 
