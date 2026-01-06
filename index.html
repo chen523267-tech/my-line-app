@@ -3,26 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>禾禾租車管理系統 V17</title>
+    <title>禾禾租車管理系統 V18</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         :root { --primary: #1a73e8; --success: #34a853; --danger: #ea4335; --bg: #f8f9fa; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); padding: 15px; margin: 0; color: #202124; }
-        .card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
-        .card-title { color: var(--primary); font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; }
+        .card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 15px; }
+        .card-title { color: var(--primary); font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; }
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .info-box { background: var(--bg); padding: 12px; border-radius: 12px; display: flex; align-items: center; }
         .info-icon { font-size: 24px; margin-right: 12px; }
         .info-content label { display: block; font-size: 0.75rem; color: #666; margin-bottom: 2px; }
-        .info-content div { font-size: 0.95rem; font-weight: 700; }
-        .item { padding: 15px 0; border-bottom: 1px solid #f1f3f4; display: flex; justify-content: space-between; align-items: center; }
-        .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }
+        .info-content div { font-size: 0.95rem; font-weight: bold; }
+        .item { padding: 15px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; }
         .paid { background: #e6f4ea; color: var(--success); }
         .unpaid { background: #fce8e6; color: var(--danger); }
-        input, select { width: 100%; padding: 12px; margin: 6px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 1rem; box-sizing: border-box; }
-        .multi-area { margin: 15px 0; border: 1px solid #eee; border-radius: 10px; padding: 10px; }
-        .multi-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; border-bottom: 1px solid #f9f9f9; padding-bottom: 8px; }
-        .multi-row input[type="checkbox"] { width: 22px; height: 22px; margin: 0; }
+        input, select { width: 100%; padding: 12px; margin: 5px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 1rem; }
+        .multi-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; border-bottom: 1px solid #f9f9f9; padding-bottom: 5px; }
+        .multi-row input[type="checkbox"] { width: 22px; height: 22px; }
         .multi-row input[type="number"] { flex: 1; padding: 8px; font-size: 0.9rem; }
         button { cursor: pointer; border: none; width: 100%; padding: 14px; border-radius: 10px; font-weight: bold; font-size: 1rem; }
         .btn-main { background: var(--primary); color: white; margin-top: 15px; }
@@ -30,7 +29,7 @@
     </style>
 </head>
 <body>
-    <div id="loader" style="margin-top: 45vh; text-align: center; color: #666;"><h3>🛡️ 正在讀取車輛資料...</h3></div>
+    <div id="loader" style="margin-top: 45vh; text-align: center; color: #666;"><h3>🛡️ 系統資料同步中...</h3></div>
 
     <div id="app" class="hidden">
         <h2 id="user-name" style="text-align:center; margin-bottom: 20px;">你好</h2>
@@ -43,22 +42,22 @@
         <div class="card"><div id="list"></div></div>
 
         <div class="card">
-            <div class="card-title">📸 上傳收據照片</div>
+            <div class="card-title">📸 上傳繳費收據</div>
             <input type="file" id="receipt-file" accept="image/*">
-            <button id="upload-btn" onclick="uploadReceipt()" class="btn-main" style="background:#f39c12;">確認送出收據</button>
+            <button onclick="uploadReceipt()" class="btn-main" style="background:#f39c12;">確認送出照片</button>
         </div>
-        <button onclick="showAdminLogin()" style="background:none; color:#666; font-size:0.8rem; margin-top:20px;">管理員專區</button>
+        <button onclick="showAdminLogin()" style="background:none; color:#666; font-size:0.8rem; margin-top:20px;">管理員入口</button>
     </div>
 
     <div id="admin-view" class="card hidden">
-        <h3 style="color:var(--primary); margin-top:0;">新增帳務 (智慧連動版)</h3>
+        <h3 style="color:var(--primary); margin-top:0;">新增帳務 (全功能連動)</h3>
         
         <label style="font-size:0.8rem; font-weight:bold;">司機姓名：</label>
-        <input list="driver-list" id="new-name" oninput="autoFillData()" placeholder="輸入名字自動搜尋">
+        <input list="driver-list" id="new-name" oninput="autoFillData()" placeholder="輸入名字自動對位">
         <datalist id="driver-list"></datalist>
 
         <label style="font-size:0.8rem; color:#666;">UserID：</label>
-        <input type="text" id="new-userId" placeholder="UserID 將自動對位">
+        <input type="text" id="new-userId" placeholder="UserID 自動填入...">
 
         <div style="display:flex; gap:10px;">
             <div style="flex:1;"><label style="font-size:0.75rem;">加入日期</label><input type="date" id="new-joinDate"></div>
@@ -82,7 +81,7 @@
         </div>
         
         <div class="multi-area">
-            <label style="font-size:0.85rem; font-weight:bold;">選擇收費項目：</label>
+            <label style="font-size:0.85rem; font-weight:bold;">勾選項目：</label>
             <div class="multi-row"><input type="checkbox" value="車租"> 車租 <input type="number" class="item-amt" placeholder="金額"></div>
             <div class="multi-row"><input type="checkbox" value="行費"> 行費 <input type="number" class="item-amt" placeholder="金額"></div>
             <div class="multi-row"><input type="checkbox" value="保險費"> 保險費 <input type="number" class="item-amt" placeholder="金額"></div>
@@ -90,22 +89,20 @@
             <div class="multi-row"><input type="checkbox" value="罰單"> 罰單 <input type="number" class="item-amt" placeholder="金額"></div>
         </div>
 
-        <select id="new-status"><option value="false">繳費狀態：未繳</option><option value="true">繳費狀態：已繳</option></select>
-        <button onclick="submitToSheet()" class="btn-main" style="background:var(--success);">確認儲存</button>
+        <select id="pay-status"><option value="false">狀態：未繳</option><option value="true">狀態：已繳</option></select>
+        <button onclick="submitToSheet()" class="btn-main" style="background:var(--success);">儲存至試算表</button>
         <button onclick="location.reload()" style="background:#eee; color:#666; margin-top:10px;">取消返回</button>
     </div>
 
     <div id="admin-login" class="card hidden">
-        <h3>管理員驗證</h3>
-        <input type="text" id="admin-acc" placeholder="帳號"><input type="password" id="admin-pwd" placeholder="密碼">
-        <button onclick="handleAdminLogin()" class="btn-main">確認登入</button>
+        <input type="password" id="admin-pwd" placeholder="管理員密碼"><button onclick="checkAdmin()" class="btn-main">登入驗證</button>
     </div>
 
     <script>
         const LIFF_ID = "2008825791-99Vl1KKs"; 
-        const API_URL = "https://script.google.com/macros/s/AKfycbzLdEr-LHoejFMpThHvzXSs7ARu_RkFPWIVcMPWtRo4zNBW6OVFRUR2iwnsd2Pat-QS/exec"; 
-        let currentUserId = "";
+        const API_URL = "你的最新GAS網址"; // ⚠️ 請務必替換成新網址
         let driverData = []; 
+        let currentUserId = "";
 
         async function start() {
             try {
@@ -115,53 +112,44 @@
                     const profile = await liff.getProfile();
                     currentUserId = profile.userId;
                     const res = await fetch(API_URL);
-                    // 修正：增加錯誤攔截以處理 SyntaxError
-                    const text = await res.text();
-                    try { driverData = JSON.parse(text); } catch(e) { throw new Error("GAS 網址回應錯誤，請重新部署並更新 URL"); }
+                    driverData = await res.json();
                     
-                    const listHtml = [...new Set(driverData.map(d => String(d.姓名).trim()))]
-                        .map(name => `<option value="${name}">`).join('');
-                    document.getElementById('driver-list').innerHTML = listHtml;
+                    document.getElementById('driver-list').innerHTML = [...new Set(driverData.map(d => d.姓名))].map(n => `<option value="${n}">`).join('');
                     document.getElementById('loader').classList.add('hidden');
                     document.getElementById('app').classList.remove('hidden');
                     document.getElementById('user-name').innerText = "你好，" + profile.displayName;
                     renderUI(driverData, currentUserId);
                 }
-            } catch (err) { alert("系統錯誤：" + err.message); }
+            } catch (err) { alert("連線失敗：" + err); }
         }
 
-        // ✨ 強化連動邏輯：優先找「真 ID」+ 補回車型對應
         function autoFillData() {
-            const nameInput = document.getElementById('new-name').value;
-            const matches = driverData.filter(d => String(d.姓名).trim() === nameInput.trim());
+            const name = document.getElementById('new-name').value;
+            const matches = driverData.filter(d => String(d.姓名).trim() === name.trim());
             if (matches.length > 0) {
-                const realIdRecord = matches.find(d => String(d.帳號).startsWith('U'));
-                const lastRecord = matches[matches.length - 1];
-
-                document.getElementById('new-userId').value = realIdRecord ? realIdRecord.帳號 : (lastRecord.帳號 || "待補 ID");
-                document.getElementById('new-carNo').value = lastRecord.車號 || "";
-                
-                if (lastRecord.加入日期) {
-                    const d = lastRecord.加入日期.split('/');
+                const realId = matches.find(d => String(d.帳號).startsWith('U'));
+                const last = matches[matches.length - 1];
+                document.getElementById('new-userId').value = realId ? realId.帳號 : "待補 ID";
+                document.getElementById('new-carNo').value = last.車號 || "";
+                document.getElementById('new-carType').value = last.車型 || "";
+                document.getElementById('new-carStatus').value = last.合約狀態 || "租車";
+                if (last.加入日期) {
+                    const d = last.加入日期.split('/');
                     if (d.length === 3) document.getElementById('new-joinDate').value = `${d[0]}-${d[1].padStart(2,'0')}-${d[2].padStart(2,'0')}`;
                 }
-                
-                // 確保手機端的標籤與試算表對齊
-                if (lastRecord.車型) document.getElementById('new-carType').value = lastRecord.車型;
-                if (lastRecord.合約狀態) document.getElementById('new-carStatus').value = lastRecord.合約狀態;
             }
         }
 
-        function renderUI(data, userId) {
-            const myData = data.filter(r => String(r.帳號).trim() === userId.trim());
+        function renderUI(data, uid) {
+            const myData = data.filter(r => String(r.帳號).trim() === uid.trim());
             const profileDiv = document.getElementById('user-profile');
             if (myData.length > 0) {
-                const dateEntry = myData.filter(r => r.下次繳費日期).pop() || myData[myData.length-1];
+                const last = myData.filter(r => r.下次繳費日期).pop() || myData[myData.length-1];
                 profileDiv.innerHTML = `
-                    <div class="info-box"><span class="info-icon">🔢</span><div class="info-content"><label>車號</label><div>${dateEntry.車號 || '-'}</div></div></div>
-                    <div class="info-box"><span class="info-icon">🚙</span><div class="info-content"><label>車型</label><div>${dateEntry.車型 || '-'}</div></div></div>
-                    <div class="info-box"><span class="info-icon">📃</span><div class="info-content"><label>合約狀態</label><div>${dateEntry.合約狀態 || '-'}</div></div></div>
-                    <div class="info-box"><span class="info-icon">📅</span><div class="info-content"><label>下次繳費</label><div style="color:red;">${dateEntry.下次繳費日期 || '無'}</div></div></div>
+                    <div class="info-box"><span class="info-icon">🔢</span><div class="info-content"><label>車號</label><div>${last.車號 || '-'}</div></div></div>
+                    <div class="info-box"><span class="info-icon">🚙</span><div class="info-content"><label>車型</label><div>${last.車型 || '-'}</div></div></div>
+                    <div class="info-box"><span class="info-icon">📃</span><div class="info-content"><label>合約狀態</label><div>${last.合約狀態 || '-'}</div></div></div>
+                    <div class="info-box"><span class="info-icon">📅</span><div class="info-content"><label>下次繳費</label><div style="color:red;">${last.下次繳費日期 || '無'}</div></div></div>
                 `;
                 document.getElementById('list').innerHTML = myData.map(r => `
                     <div class="item">
@@ -170,40 +158,36 @@
                     </div>
                 `).join('');
             } else {
-                profileDiv.innerHTML = `<div style="grid-column: span 2; text-align:center; padding: 20px;">⚠️ 尚未綁定權限<br><small>ID：${userId}</small></div>`;
+                profileDiv.innerHTML = `<div style="grid-column: span 2; text-align:center;">尚未綁定<br><small>ID: ${uid}</small></div>`;
             }
         }
 
         async function submitToSheet() {
-            const checkedItems = [];
+            const items = [];
             document.querySelectorAll('.multi-row').forEach(row => {
                 const cb = row.querySelector('input[type="checkbox"]');
                 const amt = row.querySelector('.item-amt').value;
-                if (cb.checked) { checkedItems.push({ name: cb.value, amount: amt }); }
+                if (cb.checked) items.push({ name: cb.value, amount: amt });
             });
-            if (checkedItems.length === 0) { alert("請勾選收費項目"); return; }
+            if (items.length === 0) { alert("請勾選收費項目"); return; }
+            
             const payload = {
                 type: "adminAdd", userIdInput: document.getElementById('new-userId').value,
                 name: document.getElementById('new-name').value, joinDate: document.getElementById('new-joinDate').value.replace(/-/g, '/'),
                 carNo: document.getElementById('new-carNo').value, carType: document.getElementById('new-carType').value,
-                carStatus: document.getElementById('new-carStatus').value, items: checkedItems, payStatus: document.getElementById('new-status').value === "true"
+                carStatus: document.getElementById('new-carStatus').value, items: items, payStatus: document.getElementById('pay-status').value === "true"
             };
-            const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-            alert(await res.text()); location.reload();
+            const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+            alert(await response.text()); location.reload();
         }
-
         function showAdminLogin() { document.getElementById('app').classList.add('hidden'); document.getElementById('admin-login').classList.remove('hidden'); }
-        function handleAdminLogin() {
-            if(document.getElementById('admin-acc').value === "admin" && document.getElementById('admin-pwd').value === "admin123") {
-                document.getElementById('admin-login').classList.add('hidden'); document.getElementById('admin-view').classList.remove('hidden');
-            } else { alert("錯誤"); }
-        }
+        function checkAdmin() { if(document.getElementById('admin-pwd').value === "admin123") { document.getElementById('admin-login').classList.add('hidden'); document.getElementById('admin-view').classList.remove('hidden'); } else { alert("密碼錯誤"); } }
         async function uploadReceipt() {
             const fileInput = document.getElementById('receipt-file');
             if (fileInput.files.length === 0) return;
             const reader = new FileReader();
             reader.onload = async function(e) {
-                const payload = { type: "uploadReceipt", userId: currentUserId, base64: e.target.result.split(',')[1], mimeType: fileInput.files[0].type };
+                const payload = { type: "uploadReceipt", userId: currentUserId, name: liff.getDecodedIDToken().name, base64: e.target.result.split(',')[1], mimeType: fileInput.files[0].type };
                 const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
                 alert(await res.text()); location.reload();
             };
