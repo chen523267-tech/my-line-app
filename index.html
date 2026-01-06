@@ -6,156 +6,244 @@
     <title>禾禾租車管理系統</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        :root { --primary: #1a73e8; --success: #34a853; --danger: #ea4335; --gray: #5f6368; --bg: #f8f9fa; }
-        body { font-family: sans-serif; background: var(--bg); padding: 15px; margin: 0; color: #202124; }
-        .card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 15px; }
-        .card-title { color: var(--primary); font-weight: 600; margin-bottom: 15px; display: flex; align-items: center; }
+        /* --- 視覺規範與顏色 --- */
+        :root {
+            --primary: #1a73e8;    /* 品牌藍 */
+            --success: #34a853;    /* 已繳綠 */
+            --danger: #ea4335;     /* 未繳紅 */
+            --warning: #fbbc05;    /* 待處理黃 */
+            --bg: #f8f9fa;         /* 背景灰 */
+            --text-main: #202124;  /* 主文字 */
+            --text-sub: #5f6368;   /* 副文字 */
+        }
+
+        body { 
+            font-family: -apple-system, system-ui, sans-serif; 
+            background: var(--bg); 
+            padding: 16px; 
+            margin: 0; 
+            color: var(--text-main); 
+        }
+
+        /* --- 卡片設計 --- */
+        .card { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 16px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05); 
+            margin-bottom: 16px; 
+        }
+        .card-header {
+            display: flex; align-items: center; margin-bottom: 15px;
+            font-size: 1.1rem; font-weight: 600; color: var(--primary);
+        }
+        .header-icon { margin-right: 8px; font-size: 1.2rem; }
+
+        /* --- 個人資料方塊 --- */
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .info-box { background: var(--bg); padding: 10px; border-radius: 10px; }
-        .info-box label { display: block; font-size: 0.75rem; color: var(--gray); }
-        .info-box div { font-size: 1rem; font-weight: bold; }
-        .item { padding: 12px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
-        .status-badge { padding: 5px 10px; border-radius: 15px; font-size: 0.8rem; font-weight: bold; }
-        .paid { background: #e6f4ea; color: var(--success); }
-        .unpaid { background: #fce8e6; color: var(--danger); }
-        input, select { width: 100%; padding: 12px; margin: 5px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        button { cursor: pointer; border: none; width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; }
-        .btn-main { background: var(--primary); color: white; margin-top: 10px; }
-        .btn-sub { background: #eee; color: var(--gray); margin-top: 10px; }
+        .info-box {
+            background: var(--bg);
+            padding: 12px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+        }
+        .info-icon { font-size: 24px; margin-right: 10px; }
+        .info-content label { display: block; font-size: 0.75rem; color: var(--text-sub); }
+        .info-content div { font-size: 1rem; font-weight: 700; }
+
+        /* --- 帳務明細清單 --- */
+        .item { 
+            padding: 15px 0; border-bottom: 1px solid #f1f3f4;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .item:last-child { border-bottom: none; }
+        .item-title { font-size: 1rem; font-weight: 500; }
+        .item-amount { font-size: 0.9rem; color: var(--text-sub); margin-top: 2px; }
+
+        /* --- 狀態標籤 (支援文字與勾選框) --- */
+        .status-badge { 
+            padding: 6px 12px; border-radius: 20px; 
+            font-size: 0.8rem; font-weight: 700;
+        }
+        .status-paid { background: #e6f4ea; color: var(--success); }
+        .status-unpaid { background: #fce8e6; color: var(--danger); }
+
+        /* --- 按鈕與表單 --- */
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 1rem; }
+        .btn { width: 100%; padding: 14px; border-radius: 10px; border: none; font-size: 1rem; font-weight: 600; cursor: pointer; }
+        .btn-orange { background: #f39c12; color: white; margin-top: 10px; }
+        .btn-blue { background: var(--primary); color: white; margin-top: 15px; }
+        .btn-green { background: var(--success); color: white; }
         .hidden { display: none; }
     </style>
 </head>
 <body>
-    <div id="loader" style="margin-top: 45vh; text-align: center;"><h3>系統安全啟動中...</h3></div>
+
+    <div id="loader" style="margin-top: 40vh; text-align: center; color: var(--text-sub);">
+        <h3>🛡️ 安全連線中...</h3>
+    </div>
 
     <div id="app" class="hidden">
-        <h2 id="user-name" style="text-align:center;">你好</h2>
+        <h2 id="user-name" style="text-align:center; margin-bottom: 20px;">你好</h2>
         
         <div class="card">
-            <div class="card-title">🚘 車輛與合約資訊</div>
-            <div id="user-profile" class="info-grid"></div>
+            <div class="card-header"><span class="header-icon">🚘</span>車輛與合約資訊</div>
+            <div id="user-profile" class="info-grid">
+                </div>
         </div>
 
         <div class="card">
-            <div class="card-title">💰 帳務明細</div>
+            <div class="card-header"><span class="header-icon">💰</span>帳務明細</div>
             <div id="list"></div>
         </div>
 
         <div class="card">
-            <div class="card-title">📸 上傳繳費收據</div>
+            <div class="card-header"><span class="header-icon">📸</span>上傳繳費收據</div>
+            <p style="font-size:0.85rem; color:var(--text-sub); margin-bottom:12px;">點擊選擇轉帳截圖或收據照片</p>
             <input type="file" id="receipt-file" accept="image/*">
-            <button id="upload-btn" onclick="uploadReceipt()" class="btn-main" style="background:#f39c12;">送出收據照片</button>
+            <button id="upload-btn" onclick="uploadReceipt()" class="btn btn-orange">確認送出照片</button>
         </div>
         
-        <button onclick="showAdminLogin()" class="btn-sub">管理員登入</button>
+        <button onclick="showAdminLogin()" class="btn" style="background:none; color:var(--text-sub); font-size:0.85rem;">管理員登入</button>
     </div>
 
     <div id="admin-view" class="card hidden">
-        <h3>新增帳務 (綁定 UserID)</h3>
-        <input type="text" id="new-userId" placeholder="貼上司機的 UserID">
+        <h3 style="margin-top:0; color:var(--primary);">新增司機帳務</h3>
+        <input type="text" id="new-userId" placeholder="貼上司機唯一的 UserID">
         <input type="text" id="new-name" placeholder="司機姓名">
-        <div style="display:flex; gap:5px;">
-            <input type="text" id="new-carNo" placeholder="車號"><input type="text" id="new-carType" placeholder="車型">
+        <div style="display:flex; gap:10px;">
+            <input type="text" id="new-carNo" placeholder="車號">
+            <input type="text" id="new-carType" placeholder="車型">
         </div>
+        <select id="new-carStatus">
+            <option value="租車">租車</option><option value="靠行">靠行</option><option value="換證">換證</option>
+        </select>
         <select id="new-item">
-            <option value="車租">車租 (30天)</option><option value="行費">行費 (1年)</option><option value="罰單">罰單</option>
+            <option value="車租">車租 (30天)</option><option value="行費">行費 (1年)</option>
+            <option value="保險費">保險費 (1年)</option><option value="換證">換證 (1年)</option><option value="罰單">罰單</option>
         </select>
         <input type="number" id="new-amount" placeholder="金額">
-        <select id="new-status"><option value="未繳">未繳</option><option value="已繳">已繳</option></select>
-        <button onclick="submitToSheet()" class="btn-main" style="background:var(--success);">儲存並綁定</button>
-        <button onclick="location.reload()" class="btn-sub">取消</button>
+        <select id="new-payStatus"><option value="false">未繳</option><option value="true">已繳</option></select>
+        <button onclick="submitToSheet()" class="btn btn-green">儲存並自動計算日期</button>
+        <button onclick="location.reload()" class="btn" style="background:#eee; color:var(--text-sub); margin-top:10px;">取消</button>
     </div>
 
     <div id="admin-login" class="card hidden">
-        <h3>管理員登入</h3>
+        <h3>管理員驗證</h3>
         <input type="text" id="admin-acc" placeholder="帳號"><input type="password" id="admin-pwd" placeholder="密碼">
-        <button onclick="handleAdminLogin()" class="btn-main">登入</button>
+        <button onclick="handleAdminLogin()" class="btn btn-blue">確認登入</button>
     </div>
 
     <script>
-        const LIFF_ID = "2008825791-99Vl1KKs"; 
+        // --- 設定區 ---
+        const LIFF_ID = "2008825791-99Vl1KKs"; //
         const API_URL = "https://script.google.com/macros/s/AKfycbzLdEr-LHoejFMpThHvzXSs7ARu_RkFPWIVcMPWtRo4zNBW6OVFRUR2iwnsd2Pat-QS/exec"; 
         let currentUserId = "";
 
+        // --- 初始化系統 ---
         async function start() {
             try {
                 await liff.init({ liffId: LIFF_ID });
                 if (!liff.isLoggedIn()) { liff.login(); } 
                 else {
                     const profile = await liff.getProfile();
-                    currentUserId = profile.userId; // 🛡️ 抓取唯一指紋 ID
+                    currentUserId = profile.userId; // 抓取唯一指紋認證
                     const res = await fetch(API_URL);
-                    const data = await res.json();
+                    const text = await res.text();
+                    let data;
+                    try { 
+                        data = JSON.parse(text); 
+                    } catch(e) { 
+                        // 處理 JSON 格式報錯
+                        throw new Error("系統回應錯誤，請確認試算表分頁名稱是否為 Data"); 
+                    }
+                    
                     document.getElementById('loader').classList.add('hidden');
                     document.getElementById('app').classList.remove('hidden');
                     document.getElementById('user-name').innerText = "你好，" + profile.displayName;
                     renderUI(data, currentUserId);
                 }
-            } catch (err) { alert("連線失敗"); }
+            } catch (err) { 
+                document.getElementById('loader').innerHTML = `<p style="color:red;">連線失敗<br>${err.message}</p>`;
+            }
         }
 
+        // --- 渲染視覺化畫面 ---
         function renderUI(data, userId) {
-            // 🛡️ 核心安全性：只顯示 A 欄符合 UserID 的資料
+            // 使用 A 欄帳號與 UserID 比對
             const myData = data.filter(r => String(r.帳號).trim() === userId.trim());
             const profileDiv = document.getElementById('user-profile');
             
             if (myData.length > 0) {
-                const u = myData[myData.length - 1];
+                const u = myData[myData.length - 1]; // 抓取該用戶最新的一筆設定
                 profileDiv.innerHTML = `
-                    <div class="info-box"><label>車號</label><div>${u.車號 || '-'}</div></div>
-                    <div class="info-box"><label>車型</label><div>${u.車型 || '-'}</div></div>
-                    <div class="info-box"><label>合約狀態</label><div>${u.狀態 || '-'}</div></div>
-                    <div class="info-box"><label>下次繳費</label><div style="color:red;">${u.下次繳費日期 || '無'}</div></div>
+                    <div class="info-block"><span class="info-icon">🔢</span><div class="info-content"><label>車號</label><div>${u.車號 || '-'}</div></div></div>
+                    <div class="info-block"><span class="info-icon">🚙</span><div class="info-content"><label>車型</label><div>${u.車型 || '-'}</div></div></div>
+                    <div class="info-block"><span class="info-icon">📃</span><div class="info-content"><label>狀態</label><div>${u.狀態 || '-'}</div></div></div>
+                    <div class="info-block"><span class="info-icon">📅</span><div class="info-content"><label>下次繳費</label><div style="color:red;">${u.下次繳費日期 || '無'}</div></div></div>
                 `;
+
                 const listDiv = document.getElementById('list');
-                listDiv.innerHTML = myData.map(r => `
+                listDiv.innerHTML = myData.map(r => {
+                    // 判斷繳費狀態 (支援試算表勾選框產出的 true/false)
+                    const isPaid = (r.繳費狀態 === true || r.繳費狀態 === "已繳" || r.繳費狀態 === "TRUE");
+                    return `
                     <div class="item">
-                        <div><b>${r.收費項目}</b><br><small>NT$ ${r.金額}</small></div>
-                        <div class="status-badge ${r.繳費狀態==='已繳'?'paid':'unpaid'}">${r.繳費狀態==='已繳'?'✅ 已繳':'⚠️ 未繳'}</div>
+                        <div><div class="item-title">${r.收費項目}</div><div class="item-amount">NT$ ${r.金額}</div></div>
+                        <div class="status-badge ${isPaid ? 'status-paid' : 'status-unpaid'}">
+                            ${isPaid ? '✅ 已繳' : '⚠️ 未繳'}
+                        </div>
                     </div>
-                `).join('');
+                `}).join('');
             } else {
-                // 🛡️ 未綁定提示
+                // 🛡️ 安全提示：若找不到對應 ID
                 profileDiv.innerHTML = `
                     <div style="grid-column: span 2; text-align:center; padding: 10px;">
-                        <p style="color:red; font-weight:bold;">⚠️ 帳號尚未授權</p>
-                        <p style="font-size:0.8rem; color:#666;">請複製下方 ID 傳給管理員綁定：</p>
-                        <input type="text" value="${userId}" readonly style="text-align:center; font-size:0.7rem; background:#eee;">
+                        <p style="color:red; font-weight:bold; margin:0;">⚠️ 尚未綁定權限</p>
+                        <p style="font-size:0.75rem; color:var(--text-sub);">請複製下方代碼傳給管理員：</p>
+                        <input type="text" value="${userId}" readonly style="text-align:center; font-size:0.75rem; background:#f0f0f0;">
                     </div>`;
             }
         }
 
+        // --- 上傳功能 ---
         async function uploadReceipt() {
             const fileInput = document.getElementById('receipt-file');
-            if (fileInput.files.length === 0) { alert("請選照片"); return; }
+            const uploadBtn = document.getElementById('upload-btn');
+            if (fileInput.files.length === 0) { alert("請先選擇檔案"); return; }
+            uploadBtn.innerText = "上傳中..."; uploadBtn.disabled = true;
+
             const file = fileInput.files[0];
             const reader = new FileReader();
             reader.onload = async function(e) {
                 const base64 = e.target.result.split(',')[1];
-                const payload = { type: "uploadReceipt", userId: currentUserId, base64: base64, mimeType: file.type };
-                const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-                alert(await response.text()); location.reload();
+                const payload = { type: "uploadReceipt", userId: currentUserId, name: liff.getDecodedIDToken().name, base64: base64, mimeType: file.type };
+                try {
+                    const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+                    alert(await res.text()); location.reload();
+                } catch(err) { alert("上傳失敗"); uploadBtn.disabled = false; uploadBtn.innerText = "確認送出照片"; }
             };
             reader.readAsDataURL(file);
         }
 
+        // --- 管理員操作 ---
         function showAdminLogin() { document.getElementById('app').classList.add('hidden'); document.getElementById('admin-login').classList.remove('hidden'); }
         function handleAdminLogin() {
             if(document.getElementById('admin-acc').value === "admin" && document.getElementById('admin-pwd').value === "admin123") {
                 document.getElementById('admin-login').classList.add('hidden'); document.getElementById('admin-view').classList.remove('hidden');
-            } else { alert("錯誤"); }
+            } else { alert("驗證失敗"); }
         }
-
         async function submitToSheet() {
             const payload = {
                 type: "adminAdd", userIdInput: document.getElementById('new-userId').value,
                 name: document.getElementById('new-name').value, carNo: document.getElementById('new-carNo').value,
-                carType: document.getElementById('new-carType').value, carStatus: "靠行",
+                carType: document.getElementById('new-carType').value, carStatus: document.getElementById('new-carStatus').value,
                 item: document.getElementById('new-item').value, amount: document.getElementById('new-amount').value,
-                payStatus: document.getElementById('new-status').value, joinDate: new Date().toLocaleDateString()
+                payStatus: document.getElementById('new-payStatus').value, joinDate: new Date().toLocaleDateString()
             };
             await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-            alert("綁定成功"); location.reload();
+            alert("已儲存至試算表！"); location.reload();
         }
         start();
     </script>
