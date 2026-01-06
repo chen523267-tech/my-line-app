@@ -6,9 +6,11 @@
     <title>禾禾租車管理系統</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; text-align: center; margin: 0; }
+        body { font-family: -apple-system, sans-serif; background: #f0f2f5; padding: 20px; text-align: center; margin: 0; }
         .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: 15px; text-align: left; }
         .hidden { display: none; }
+        .profile-info { font-size: 0.9rem; color: #555; line-height: 1.6; }
+        .profile-info b { color: #333; }
         .item { border-bottom: 1px solid #eee; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; }
         .status { font-weight: bold; border-radius: 20px; padding: 4px 12px; font-size: 0.85rem; }
         .unpaid { background: #ffebee; color: #d93025; }
@@ -21,19 +23,28 @@
     </style>
 </head>
 <body>
-    <div id="loader" style="margin-top: 100px; color: #666;"><h3>系統啟動中...</h3></div>
+    <div id="loader" style="margin-top: 100px; color: #666;"><h3>系統連線中...</h3></div>
 
     <div id="app" class="hidden">
-        <h2 id="user-name">你好</h2>
+        <h2 id="user-name" style="margin-bottom:5px;">你好</h2>
+        
+        <div id="profile-card" class="card">
+            <h3 style="margin:0 0 10px 0; color:#1a73e8;">個人基本資料</h3>
+            <div class="profile-info" id="user-profile">
+                </div>
+        </div>
+
         <div class="card">
-            <h3>我的帳務明細</h3>
+            <h3 style="margin:0 0 10px 0;">我的帳務明細</h3>
             <div id="list"></div>
         </div>
+
         <div class="card">
             <h3>上傳繳費收據</h3>
             <input type="file" id="receipt-file" accept="image/*">
             <button id="upload-btn" onclick="uploadReceipt()" class="btn-upload">送出收據照片</button>
         </div>
+        
         <button onclick="showAdminLogin()" class="btn-admin">管理員登入</button>
     </div>
 
@@ -53,7 +64,7 @@
 
     <script>
         const LIFF_ID = "2008825791-99Vl1KKs"; 
-        // ⚠️ 下面這行網址，請記得貼上你剛才從 Google 部署複製的最新的那一個
+        // ⚠️ 請確保這是你最新的 Google Apps Script 網址
         const API_URL = "https://script.google.com/macros/s/AKfycbzLdEr-LHoejFMpThHvzXSs7ARu_RkFPWIVcMPWtRo4zNBW6OVFRUR2iwnsd2Pat-QS/exec";
         let currentUserName = "";
 
@@ -69,13 +80,28 @@
                     document.getElementById('loader').classList.add('hidden');
                     document.getElementById('app').classList.remove('hidden');
                     document.getElementById('user-name').innerText = "你好，" + currentUserName;
-                    renderList(data);
+                    
+                    renderUserSystem(data);
                 }
             } catch (err) { alert("連線失敗：" + err); }
         }
 
-        function renderList(data) {
+        function renderUserSystem(data) {
             const myData = data.filter(r => String(r.姓名).trim() === currentUserName.trim());
+            
+            // 1. 渲染個人資料 (取第一筆相符的資料)
+            const profileDiv = document.getElementById('user-profile');
+            if (myData.length > 0) {
+                const u = myData[0];
+                profileDiv.innerHTML = `
+                    <p><b>加入日期：</b>${u.加入日期 ? new Date(u.加入日期).toLocaleDateString() : '尚未設定'}</p>
+                    <p><b>合約狀態：</b>${u.合約明細 || '尚未設定'}</p>
+                `;
+            } else {
+                profileDiv.innerHTML = "尚未建立個人基本資料。";
+            }
+
+            // 2. 渲染帳務明細
             const listDiv = document.getElementById('list');
             if (myData.length > 0) {
                 listDiv.innerHTML = myData.map(r => `
@@ -84,7 +110,7 @@
                         <div class="status ${r.狀態==='已繳'?'paid':'unpaid'}">${r.狀態}</div>
                     </div>
                 `).join('');
-            } else { listDiv.innerHTML = "目前暫無明細。"; }
+            } else { listDiv.innerHTML = "目前暫無帳務明細。"; }
         }
 
         async function uploadReceipt() {
@@ -112,7 +138,7 @@
         function handleAdminLogin() {
             if(document.getElementById('admin-acc').value === "admin" && document.getElementById('admin-pwd').value === "admin123") {
                 document.getElementById('admin-login').classList.add('hidden'); document.getElementById('admin-view').classList.remove('hidden');
-            } else { alert("錯"); }
+            } else { alert("帳密錯誤"); }
         }
         async function submitToSheet() {
             const payload = { type: "adminAdd", acc: "admin", pwd: "---", name: document.getElementById('new-name').value, item: document.getElementById('new-item').value, amount: document.getElementById('new-amount').value, status: document.getElementById('new-status').value, joinDate: new Date().toLocaleDateString(), contract: "LINE" };
